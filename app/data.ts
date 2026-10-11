@@ -9,7 +9,7 @@ export const site = {
 export const navLinks = [
   { href: "/", label: "Home" },
   { href: "/services", label: "Services" },
-  { href: "/check", label: "Free Check" },
+  { href: "/check", label: "Website Scan" },
   { href: "/projects", label: "Projects" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },

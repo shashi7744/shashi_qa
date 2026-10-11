@@ -61,7 +61,7 @@ export default function ContactForm() {
       </label>
       <label htmlFor="plan">I'm interested in
         <select id="plan" name="plan" defaultValue={initialPlan}>
-          <option value="free">Free bug check</option>
+          <option value="free">Free manual test</option>
           {packages.map((p) => (
             <option key={p.id} value={p.id}>{p.name} ({p.price} {p.unit})</option>
           ))}

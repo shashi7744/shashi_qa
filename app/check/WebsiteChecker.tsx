@@ -98,10 +98,10 @@ export default function WebsiteChecker() {
           disabled={loading}
         />
         <button className="btn btn-primary" disabled={loading}>
-          {loading ? "Checking…" : "Check my site →"}
+          {loading ? "Checking…" : "Scan my site →"}
         </button>
       </form>
-      <p className="muted small check-note">Free · 5 checks a day · Only public pages are scanned, nothing is changed on your site.</p>
+      <p className="muted small check-note">Free · 5 scans a day · Only public pages are scanned, nothing is changed on your site.</p>
 
       {error && <div className="check-error" role="alert">{error}</div>}
 

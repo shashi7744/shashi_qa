@@ -108,7 +108,7 @@ async function assertPublicHost(hostname: string) {
 }
 
 /* Follows redirects by hand so every hop is checked to be a public address. */
-async function safeFetch(url: string, init: RequestInit = {}, ms = 10000, maxHops = 5): Promise<Response> {
+export async function safeFetch(url: string, init: RequestInit = {}, ms = 10000, maxHops = 5): Promise<Response> {
   let current = url;
   for (let hop = 0; hop <= maxHops; hop++) {
     const u = new URL(current);
@@ -126,7 +126,7 @@ async function safeFetch(url: string, init: RequestInit = {}, ms = 10000, maxHop
   throw new UserError("The site redirects too many times.");
 }
 
-async function readLimited(res: Response, maxBytes = 2_000_000): Promise<string> {
+export async function readLimited(res: Response, maxBytes = 2_000_000): Promise<string> {
   const reader = res.body?.getReader();
   if (!reader) return "";
   const chunks: Uint8Array[] = [];

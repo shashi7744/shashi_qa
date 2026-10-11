@@ -18,7 +18,7 @@ export default function Home() {
             fix-ready bug reports, so every release ships with confidence.
           </p>
           <div className="row">
-            <Link href="/contact" className="btn btn-primary">Get a free bug check →</Link>
+            <Link href="/contact" className="btn btn-primary">Get a free manual test →</Link>
             <Link href="/services" className="btn btn-ghost">See services & pricing</Link>
           </div>
           <ul className="trust">
@@ -36,7 +36,7 @@ export default function Home() {
         <div className="stat"><strong>48h</strong><span>Turnaround on release testing</span></div>
         <div className="stat"><strong>4</strong><span>Browsers tested on every job</span></div>
         <div className="stat"><strong>3</strong><span>Live apps built and tested</span></div>
-        <div className="stat"><strong>7+ yrs</strong><span>Working with clients</span></div>
+        <div className="stat"><strong>Since 2019</strong><span>Client-facing, in sales and app support</span></div>
       </section>
 
       {/* Live test run */}
@@ -99,7 +99,7 @@ export default function Home() {
             <p className="lead">
               Speed, SEO, accessibility, security and broken links, with an AI summary of the three fixes that matter most.
             </p>
-            <Link href="/check" className="btn btn-primary fit">Run a free check →</Link>
+            <Link href="/check" className="btn btn-primary fit">Run a free website scan →</Link>
           </div>
           <div className="tool-preview" aria-hidden="true">
             <div className="tp-score"><strong>72</strong><span>/100</span></div>
@@ -164,7 +164,7 @@ export default function Home() {
             <h2>Launching soon? Let me break it first.</h2>
             <p className="lead">I'll test one key flow of your app for free and send you every bug I find.</p>
           </div>
-          <Link href="/contact" className="btn btn-primary">Claim your free bug check →</Link>
+          <Link href="/contact" className="btn btn-primary">Claim your free manual test →</Link>
         </div>
       </section>
     </>

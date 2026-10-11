@@ -33,7 +33,7 @@ export default function Header() {
             </Link>
           ))}
           <Link href="/contact" className="btn btn-primary btn-sm nav-cta">
-            Free bug check
+            Free manual test
           </Link>
         </nav>
       </div>

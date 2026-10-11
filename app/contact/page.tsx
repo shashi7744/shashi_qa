@@ -5,7 +5,7 @@ import { site } from "../data";
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: "Get a free bug check or a quote for software testing.",
+  description: "Get a free manual test or a quote for software testing.",
 };
 
 export default function Contact() {
@@ -15,7 +15,7 @@ export default function Contact() {
         <span className="eyebrow">Contact</span>
         <h1>Let's test your app.</h1>
         <p className="lead">
-          Tell me about your product. I reply within 24 hours, and the first bug check is free.
+          Tell me about your product. I reply within 24 hours, and the first manual test is free.
         </p>
       </section>
 
@@ -35,7 +35,7 @@ export default function Contact() {
               <span>{site.location} · Remote worldwide</span>
             </div>
             <div className="contact-item">
-              <span className="label">Free bug check includes</span>
+              <span className="label">Free manual test includes</span>
               <ul className="checks">
                 <li>One key flow tested (e.g. sign-up or checkout)</li>
                 <li>Desktop and mobile</li>
