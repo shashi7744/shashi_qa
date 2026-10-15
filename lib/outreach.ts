@@ -37,6 +37,7 @@ export interface Launch {
   source: string;
   postedAt: string;
   discussion?: string;
+  author?: string; // HN username of the person who posted it
 }
 
 const SKIP_HOSTS = [
@@ -76,6 +77,7 @@ export async function findLaunches(limit = 40): Promise<Launch[]> {
       source: "Show HN",
       postedAt: h.created_at,
       discussion: `https://news.ycombinator.com/item?id=${h.objectID}`,
+      author: h.author ? String(h.author) : undefined,
     });
     if (out.length >= limit) break;
   }
@@ -84,58 +86,198 @@ export async function findLaunches(limit = 40): Promise<Launch[]> {
 
 /* ---------- Step 2: find a public contact address on the site ---------- */
 
-const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
-const JUNK = /(example\.|sentry|wixpress|\.png|\.jpg|\.webp|\.svg|noreply|no-reply|@2x)/i;
+/* Only addresses the company or founder published themselves: site pages, security.txt and the
+   poster's own Hacker News profile. No guessing addresses, no SMTP probing, no scraping commits. */
 
-async function getHtml(url: string): Promise<string> {
+const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)*\.[A-Z]{2,}/gi;
+const JUNK =
+  /(example\.|sentry|wixpress|\.(png|jpe?g|gif|webp|svg|css|js)$|noreply|no-reply|donotreply|@\dx|u003e|yourname|youremail|your-email|^(email|name|user|test|john|jane)@)/i;
+
+async function getPage(url: string, kind: "html" | "text" = "html"): Promise<string> {
   try {
     await normalizeUrl(url); // refuses private / internal addresses
     // safeFetch re-checks every redirect hop, so a site can't bounce us to an internal address
     const res = await safeFetch(url, {}, 8000);
-    if (!res.ok || !(res.headers.get("content-type") || "").includes("html")) return "";
+    const type = res.headers.get("content-type") || "";
+    if (!res.ok || !type.includes(kind === "html" ? "html" : "text/plain")) return "";
     return await readLimited(res, 1_500_000);
   } catch {
     return "";
   }
 }
 
+/** Cloudflare shows emails normally to visitors but stores them as data-cfemail="hex" (first byte is an XOR key). */
+function decodeCfEmail(hex: string) {
+  const key = parseInt(hex.slice(0, 2), 16);
+  let out = "";
+  for (let i = 2; i + 1 < hex.length; i += 2) out += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16) ^ key);
+  return out;
+}
+
+/** "name [at] domain [dot] com" → "name@domain.com". `loose` also accepts plain " at " / " dot ",
+    which is only safe in short bios (on normal pages "meet us at example.com" would be misread). */
+function deobfuscate(text: string, loose = false) {
+  // plain " at " only counts when a spelled-out "dot" follows ("name at site dot com"), so "I work at stripe.com" is left alone
+  const at = loose
+    ? String.raw`\s*(?:[\[({<]\s*at\s*[\])}>]|\s+at\s+(?=[a-z0-9-]+\s*(?:[\[({<]\s*dot\s*[\])}>]|\s+dot\s+)))\s*`
+    : String.raw`\s*[\[({<]\s*at\s*[\])}>]\s*`;
+  const dot = loose ? String.raw`\s*(?:[\[({<]\s*dot\s*[\])}>]|\s+dot\s+)\s*` : String.raw`\s*[\[({<]\s*dot\s*[\])}>]\s*`;
+  return text
+    .replace(new RegExp(String.raw`([a-z0-9._%+-]+)${at}([a-z0-9-]+)`, "gi"), "$1@$2")
+    .replace(new RegExp(String.raw`(@[a-z0-9.-]+?)${dot}([a-z]{2,})`, "gi"), "$1.$2")
+    .replace(new RegExp(String.raw`(@[a-z0-9.-]+?)${dot}([a-z]{2,})`, "gi"), "$1.$2");
+}
+
+function addEmail(found: Map<string, string>, raw: string, source: string) {
+  const e = raw.trim().replace(/^mailto:/i, "").split("?")[0].replace(/[.,;:]+$/, "").toLowerCase();
+  if (e.length > 80 || !/^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/.test(e) || JUNK.test(e)) return;
+  if (!found.has(e)) found.set(e, source);
+}
+
+function collectEmails(html: string, source: string, found: Map<string, string>, loose = false) {
+  if (!html) return;
+  const $ = cheerio.load(html);
+  $('a[href^="mailto:" i]').each((_, el) => addEmail(found, $(el).attr("href") || "", source));
+  $("[data-cfemail]").each((_, el) => addEmail(found, decodeCfEmail($(el).attr("data-cfemail") || ""), source));
+  $('a[href*="/cdn-cgi/l/email-protection#"]').each((_, el) =>
+    addEmail(found, decodeCfEmail(($(el).attr("href") || "").split("#")[1] || ""), source)
+  );
+  $("script, style, noscript").remove();
+  const text = deobfuscate($.root().text(), loose); // .text() also decodes &#64; style entities
+  for (const m of text.match(EMAIL_RE) || []) addEmail(found, m, source);
+  for (const m of html.match(EMAIL_RE) || []) addEmail(found, m, source); // e.g. JSON-LD "email" fields
+}
+
+const PAGE_HINTS: [RegExp, string][] = [
+  [/contact/i, "contact page"],
+  [/support|help/i, "support page"],
+  [/about|team|company/i, "about page"],
+  [/privacy/i, "privacy policy"],
+  [/terms|legal|imprint|impressum/i, "legal page"],
+];
+
 export interface Contacts {
   emails: string[];
+  emailSources?: Record<string, string>;
+  business?: Business;
   contactPage?: string;
   socials: string[];
 }
 
-export async function findContacts(siteUrl: string): Promise<Contacts> {
-  const home = await getHtml(siteUrl);
-  const $ = cheerio.load(home);
-  const emails = new Set<string>();
+export async function findContacts(siteUrl: string, hnUser?: string): Promise<Contacts> {
+  const base = new URL(siteUrl);
+  const home = await getPage(siteUrl);
+  const found = new Map<string, string>();
   const socials = new Set<string>();
+  const pages = new Map<string, string>(); // url -> label
   let contactPage: string | undefined;
 
-  $('a[href^="mailto:"]').each((_, el) => {
-    const e = ($(el).attr("href") || "").replace(/^mailto:/i, "").split("?")[0].trim();
-    if (e && !JUNK.test(e)) emails.add(e.toLowerCase());
-  });
-  (home.match(EMAIL_RE) || []).forEach((e) => !JUNK.test(e) && emails.add(e.toLowerCase()));
+  collectEmails(home, "homepage", found);
 
+  const $ = cheerio.load(home);
   $("a[href]").each((_, el) => {
-    const href = $(el).attr("href") || "";
-    const text = $(el).text().toLowerCase();
     try {
-      const u = new URL(href, siteUrl);
+      const u = new URL($(el).attr("href") || "", base);
+      u.hash = "";
       if (/(twitter\.com|x\.com|linkedin\.com)\//i.test(u.href)) socials.add(u.href);
-      if (!contactPage && u.host === new URL(siteUrl).host && /(contact|about|support)/i.test(u.pathname + " " + text)) {
-        contactPage = u.href;
-      }
+      if (u.host !== base.host || pages.has(u.href) || u.href === base.href) return;
+      const hint = PAGE_HINTS.find(([re]) => re.test(u.pathname + " " + $(el).text()));
+      if (!hint) return;
+      pages.set(u.href, hint[1]);
+      if (!contactPage && /contact|support/.test(hint[1])) contactPage = u.href;
     } catch {}
   });
-
-  if (!emails.size && contactPage) {
-    const html = await getHtml(contactPage);
-    (html.match(EMAIL_RE) || []).forEach((e) => !JUNK.test(e) && emails.add(e.toLowerCase()));
+  for (const [path, label] of [["/contact", "contact page"], ["/about", "about page"], ["/privacy", "privacy policy"]]) {
+    const u = new URL(path, base).href;
+    if (![...pages.values()].includes(label)) pages.set(u, label);
   }
+  if (!contactPage) contactPage = [...pages].find(([, l]) => l === "about page")?.[0];
 
-  return { emails: [...emails].slice(0, 3), contactPage, socials: [...socials].slice(0, 3) };
+  const hnProfile = async () => {
+    if (!hnUser || !/^[A-Za-z0-9_-]{2,15}$/.test(hnUser)) return;
+    try {
+      const res = await fetch(`https://hacker-news.firebaseio.com/v0/user/${hnUser}.json`, { signal: AbortSignal.timeout(6000) });
+      const about: string = (await res.json())?.about || "";
+      collectEmails(`<p>${about}</p>`, `HN profile (${hnUser})`, found, true);
+    } catch {}
+  };
+
+  const security = async () => {
+    const txt = await getPage(new URL("/.well-known/security.txt", base).href, "text");
+    for (const m of txt.match(/^contact:\s*mailto:\S+/gim) || []) addEmail(found, m.replace(/^contact:\s*/i, ""), "security.txt");
+  };
+
+  await Promise.all([
+    ...[...pages].slice(0, 6).map(async ([url, label]) => collectEmails(await getPage(url), label, found)),
+    security(),
+    hnProfile(),
+  ]);
+
+  // Addresses on the company's own domain first, then anything else (e.g. a founder's Gmail)
+  const domain = base.hostname.replace(/^www\./, "");
+  const own = (e: string) => {
+    const d = e.split("@")[1];
+    return d === domain || d.endsWith("." + domain) || domain.endsWith("." + d);
+  };
+  const emails = [...found.keys()].sort((a, b) => Number(own(b)) - Number(own(a))).slice(0, 5);
+
+  return {
+    business: businessSignals(home, siteUrl, emails.some(own)),
+    emails,
+    emailSources: Object.fromEntries(emails.map((e) => [e, found.get(e)!])),
+    contactPage,
+    socials: [...socials].slice(0, 3),
+  };
+}
+
+/* ---------- Step 2b: is this a real business that could pay? ---------- */
+
+export interface Business {
+  score: number; // 0-100
+  label: "Business" | "Maybe" | "Hobby";
+  signals: string[]; // what we saw, shown in the admin
+  flow: string; // the flow worth offering to test
+}
+
+const FREE_HOSTS = /\.(github\.io|vercel\.app|netlify\.app|pages\.dev|herokuapp\.com|onrender\.com|glitch\.me|replit\.app|surge\.sh|web\.app|firebaseapp\.com)$/i;
+
+/** Looks for signs that money changes hands: prices, checkout, app store listings, sign-up, a team. */
+export function businessSignals(html: string, siteUrl: string, ownDomainEmail: boolean): Business {
+  const $ = cheerio.load(html || "");
+  const links = $("a[href]")
+    .map((_, el) => `${$(el).attr("href")} ${$(el).text()}`.toLowerCase())
+    .get()
+    .join("\n");
+  $("script, style, noscript").remove();
+  const text = $.root().text().toLowerCase();
+  const scripts = (html || "").toLowerCase();
+
+  const checks: [boolean, number, string][] = [
+    [/pricing|\/plans|upgrade|buy now|subscribe|checkout|add to cart|free trial|start trial/.test(links + text), 30, "Pricing or checkout"],
+    [/[$€£₹]\s?\d|\d\s?(usd|eur|inr)\b|\/\s?mo(nth)?\b|per month/.test(text), 15, "Shows prices"],
+    [/stripe\.com|js\.stripe|paddle|lemonsqueezy|gumroad|razorpay|chargebee|shopify/.test(scripts), 30, "Takes payments"],
+    [/apps\.apple\.com|play\.google\.com/.test(links), 15, "App store app"],
+    [/log ?in|sign ?in|sign ?up|register|create account|get started|dashboard/.test(links), 15, "Sign-up / login"],
+    [/careers|jobs|we.?re hiring|\/team|our team/.test(links + text), 10, "Has a team / hiring"],
+    [/terms|privacy/.test(links), 5, "Terms / privacy pages"],
+    [ownDomainEmail, 5, "Email on own domain"],
+  ];
+  let score = checks.reduce((s, [hit, pts]) => s + (hit ? pts : 0), 0);
+  const signals = checks.filter(([hit]) => hit).map(([, , label]) => label);
+  if (FREE_HOSTS.test(new URL(siteUrl).hostname)) {
+    score -= 15;
+    signals.push("On a free hosting subdomain");
+  }
+  score = Math.max(0, Math.min(100, score));
+
+  const flow = checks[0][0] || checks[2][0]
+    ? "sign-up and checkout flow"
+    : checks[3][0]
+    ? "app on real iPhone and Android devices"
+    : checks[4][0]
+    ? "sign-up and onboarding flow"
+    : "main user flow";
+  return { score, label: score >= 45 ? "Business" : score >= 20 ? "Maybe" : "Hobby", signals, flow };
 }
 
 /* ---------- Step 3: draft a personal message ---------- */
@@ -154,44 +296,55 @@ function topIssues(report: Report, n = 4) {
     .slice(0, n);
 }
 
-function templateDraft(report: Report, product: string, me: { name: string; site: string }): Draft {
+export interface Signer {
+  name: string;
+  email: string;
+  site: string;
+}
+
+/** The admin refuses to send while this is still in the draft. */
+export const BUG_PLACEHOLDER =
+  "[YOUR BUG HERE: what you did → what happened → what you expected. Attach a screenshot or short screen recording.]";
+
+function templateDraft(report: Report, product: string, me: Signer, flow: string): Draft {
   const host = new URL(report.finalUrl).hostname;
-  const issues = topIssues(report, 3);
-  const list = issues.map((i, k) => `${k + 1}. ${i.title}: ${i.detail}`).join("\n");
+  const extras = topIssues(report, 2).map((i) => `- ${i.title}: ${i.detail}`).join("\n");
   return {
-    subject: `${issues.length} things I noticed on ${host}`,
+    subject: `Found a bug on ${host}`,
     body: `Hi,
 
-Congrats on launching ${product || host}! I'm a QA tester and ran a quick check on ${host}. A few things stood out:
+I tried ${product || host} and ran into this:
 
-${list}
+${BUG_PLACEHOLDER}
 
-Happy to send the full report. I also do a free manual test of one key flow (like sign-up or checkout) on real phones and browsers, if that's useful before your next release.
-
+I'm a software tester and help startups catch issues like this before their users do. Happy to test your ${flow} for free and send you a clear bug report with steps and screenshots.
+${extras ? `\nTwo smaller things my automated scan picked up, in case they're useful:\n${extras}\n` : ""}
 ${me.name}
-${me.site}`,
+Software Tester
+${me.email} · ${me.site}`,
     aiWritten: false,
   };
 }
 
-export async function draftMessage(report: Report, product: string, me: { name: string; site: string }): Promise<Draft> {
+export async function draftMessage(report: Report, product: string, me: Signer, flow = "main user flow"): Promise<Draft> {
   const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return templateDraft(report, product, me);
+  const fallback = () => templateDraft(report, product, me, flow);
+  if (!key) return fallback();
 
   const host = new URL(report.finalUrl).hostname;
-  const facts = topIssues(report, 5).map((i) => `- [${i.status}] ${i.cat} / ${i.title}: ${i.detail}`).join("\n");
+  const facts = topIssues(report, 3).map((i) => `- [${i.status}] ${i.cat} / ${i.title}: ${i.detail}`).join("\n");
   const prompt = `You write short, honest cold emails for ${me.name}, a freelance software tester (${me.site}).
 
-The recipient just launched "${product || host}" (${report.finalUrl}). An automated check found these real issues:
+The recipient runs "${product || host}" (${report.finalUrl}). ${me.name} will test the site by hand and paste one real bug into the email.
+An automated scan also found these smaller issues:
 ${facts}
-Overall score: ${report.overall}/100.
 
 Write an email that:
-- opens with one specific line about their product (use only the product name and site; do not invent features),
-- mentions the 2 or 3 most important issues above in plain words, with why they matter to users,
-- offers a free manual test of one key flow, with no pressure,
-- is under 120 words, friendly, no hype, no fake compliments, no emojis,
-- signs off as ${me.name} with the site link.
+- opens with "I tried ${product || host} and ran into this:" followed by a blank line and then this exact line, unchanged: ${BUG_PLACEHOLDER}
+- then offers, with no pressure, a free test of their ${flow} with a clear bug report,
+- optionally mentions at most 2 of the scan issues in plain words as a short "smaller things" list,
+- is under 120 words, friendly, no hype, no fake compliments, no emojis, and does not invent features or bugs,
+- signs off with exactly these lines: "${me.name}", "Software Tester", "${me.email} · ${me.site}".
 
 Reply with ONLY JSON: {"subject": "...", "body": "..."}`;
 
@@ -205,14 +358,15 @@ Reply with ONLY JSON: {"subject": "...", "body": "..."}`;
         messages: [{ role: "user", content: prompt }],
       }),
     });
-    if (!res.ok) return templateDraft(report, product, me);
+    if (!res.ok) return fallback();
     const data = await res.json();
     const text: string = data.content?.find((b: { type: string }) => b.type === "text")?.text || "";
     const json = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
-    if (!json.subject || !json.body) return templateDraft(report, product, me);
+    // the draft must keep the spot for your own bug, otherwise use the template
+    if (!json.subject || !json.body || !String(json.body).includes("[YOUR BUG HERE")) return fallback();
     return { subject: String(json.subject), body: String(json.body), aiWritten: true };
   } catch {
-    return templateDraft(report, product, me);
+    return fallback();
   }
 }
 

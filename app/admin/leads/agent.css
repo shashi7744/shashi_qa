@@ -47,6 +47,14 @@
 .lead-issues .li-warn::marker { color: var(--amber); }
 .lead-contacts { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
 .lead-contacts .label { width: 100%; }
+.agent-check { display: flex; gap: 8px; align-items: center; font-size: 0.88rem; color: var(--muted); cursor: pointer; }
+.agent-check input { accent-color: var(--teal); width: 16px; height: 16px; }
+.biz { margin-left: 8px; padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; font-size: 0.7rem; }
+.biz-business { color: var(--pass); }
+.biz-maybe { color: var(--amber); }
+.biz-hobby { color: var(--muted); }
+.lead-email { color: var(--teal); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lead-email-item { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; }
 .lead-draft { display: flex; flex-direction: column; gap: 8px; }
 .lead-contacted { opacity: 0.75; }
 @media (max-width: 900px) { .agent-controls { grid-template-columns: 1fr; } }

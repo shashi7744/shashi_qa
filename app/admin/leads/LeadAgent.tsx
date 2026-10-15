@@ -12,11 +12,14 @@ interface Lead {
   score?: number;
   issues?: { status: "pass" | "warn" | "fail"; text: string }[];
   emails?: string[];
+  emailSources?: Record<string, string>;
+  hnUser?: string;
   contactPage?: string;
   socials?: string[];
   subject?: string;
   body?: string;
   aiWritten?: boolean;
+  business?: { score: number; label: "Business" | "Maybe" | "Hobby"; signals: string[] };
   error?: string;
   addedAt: string;
   contactedAt?: string;
@@ -57,7 +60,8 @@ export default function LeadAgent() {
   const [finding, setFinding] = useState(false);
   const [msg, setMsg] = useState("");
   const [filter, setFilter] = useState<"all" | LeadStatus>("all");
-  const [maxScore, setMaxScore] = useState(85);
+  const [maxScore, setMaxScore] = useState(95);
+  const [skipHobby, setSkipHobby] = useState(true);
   const [openUrl, setOpenUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -75,7 +79,7 @@ export default function LeadAgent() {
   const update = (url: string, patch: Partial<Lead>) =>
     setLeads((ls) => ls.map((l) => (l.url === url ? { ...l, ...patch } : l)));
 
-  function addLeads(items: { url: string; title?: string; source: string }[]) {
+  function addLeads(items: { url: string; title?: string; source: string; hnUser?: string }[]) {
     setLeads((ls) => {
       const have = new Set(ls.map((l) => new URL(l.url).hostname));
       const fresh: Lead[] = [];
@@ -88,7 +92,7 @@ export default function LeadAgent() {
         }
         if (have.has(u.hostname)) continue;
         have.add(u.hostname);
-        fresh.push({ url: u.href, title: it.title || u.hostname, source: it.source, status: "queued", addedAt: new Date().toISOString() });
+        fresh.push({ url: u.href, title: it.title || u.hostname, source: it.source, hnUser: it.hnUser, status: "queued", addedAt: new Date().toISOString() });
       }
       setMsg(fresh.length ? `Added ${fresh.length} new site${fresh.length === 1 ? "" : "s"}.` : "No new sites. They're already in your list.");
       return [...fresh, ...ls];
@@ -101,7 +105,8 @@ export default function LeadAgent() {
       headers: { "Content-Type": "application/json", "x-admin-key": key },
       body: JSON.stringify(body),
     });
-    const data = await res.json();
+    // a crashed or restarting server can answer with an HTML error page instead of JSON
+    const data = await res.json().catch(() => ({ error: `Server error (HTTP ${res.status}). Try again.` }));
     if (res.status === 401) {
       setAuthed(false);
       try { sessionStorage.removeItem(KEY); } catch {}
@@ -132,7 +137,7 @@ export default function LeadAgent() {
     setMsg("");
     try {
       const { launches } = await api("/api/agent/launches", { limit: 40 });
-      addLeads(launches.map((l: { url: string; title: string }) => ({ url: l.url, title: l.title, source: "Show HN" })));
+      addLeads(launches.map((l: { url: string; title: string; author?: string }) => ({ url: l.url, title: l.title, source: "Show HN", hnUser: l.author })));
     } catch (err) {
       setMsg(err instanceof Error ? err.message : "Couldn't load launches.");
     } finally {
@@ -146,19 +151,27 @@ export default function LeadAgent() {
     for (const l of queue) {
       update(l.url, { status: "checking", error: undefined });
       try {
-        const r = await api("/api/agent/analyze", { url: l.url, product: l.title });
+        const r = await api("/api/agent/analyze", { url: l.url, product: l.title, hnUser: l.hnUser });
         const good = r.score > maxScore;
+        const business = r.contacts.business as Lead["business"];
+        const hobby = skipHobby && business?.label === "Hobby";
         update(l.url, {
-          status: good ? "skipped" : "ready",
+          status: good || hobby ? "skipped" : "ready",
+          business,
           score: r.score,
           issues: r.issues,
           emails: r.contacts.emails,
+          emailSources: r.contacts.emailSources,
           contactPage: r.contacts.contactPage,
           socials: r.contacts.socials,
           subject: r.draft.subject,
           body: r.draft.body,
           aiWritten: r.draft.aiWritten,
-          error: good ? `Scored ${r.score}. Site is in good shape, so a cold message is unlikely to land.` : undefined,
+          error: hobby
+            ? "Looks like a hobby project: no pricing, payments, sign-up or app found, so it's unlikely to pay for testing."
+            : good
+            ? `Scored ${r.score}. Site is in good shape, so a cold message is unlikely to land.`
+            : undefined,
         });
       } catch (err) {
         update(l.url, { status: "error", error: err instanceof Error ? err.message : "Failed." });
@@ -166,6 +179,13 @@ export default function LeadAgent() {
     }
     setRunning(false);
     setMsg("Agent finished. Review each draft, test the site yourself, then send.");
+  }
+
+  /** Blocks sending while the draft still has the placeholder for the bug you found yourself. */
+  function needsBug(l: Lead) {
+    if (!l.body?.includes("[YOUR BUG HERE")) return false;
+    setMsg("First test the site yourself and replace [YOUR BUG HERE …] with a real bug you found.");
+    return true;
   }
 
   async function copy(text: string) {
@@ -178,9 +198,12 @@ export default function LeadAgent() {
   }
 
   function exportCsv() {
-    const rows = [["Site", "Product", "Status", "Score", "Emails", "Contact page", "Subject", "Message"]];
+    const rows = [["Site", "Product", "Status", "Score", "Emails", "Email found on", "Contact page", "Subject", "Message"]];
     leads.forEach((l) =>
-      rows.push([l.url, l.title, statusText[l.status], String(l.score ?? ""), (l.emails || []).join(" "), l.contactPage || "", l.subject || "", l.body || ""])
+      rows.push([
+        l.url, l.title, statusText[l.status], String(l.score ?? ""), (l.emails || []).join(" "),
+        (l.emails || []).map((e) => l.emailSources?.[e] || "").join(" | "), l.contactPage || "", l.subject || "", l.body || "",
+      ])
     );
     const csv = rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")).join("\n");
     const a = document.createElement("a");
@@ -247,6 +270,10 @@ export default function LeadAgent() {
           <p className="muted small">Runs your website check on every queued site, looks for a public contact email, and writes a draft. About 30 seconds per site.</p>
           <label htmlFor="maxscore" className="label">Skip sites scoring above {maxScore}</label>
           <input id="maxscore" type="range" min={50} max={100} value={maxScore} onChange={(e) => setMaxScore(Number(e.target.value))} />
+          <label className="agent-check">
+            <input type="checkbox" checked={skipHobby} onChange={(e) => setSkipHobby(e.target.checked)} />
+            Skip hobby projects (no pricing, payments, sign-up or app)
+          </label>
           <button className="btn btn-primary" onClick={runAgent} disabled={running || !queued}>
             {running ? "Agent running…" : `Run agent on ${queued} site${queued === 1 ? "" : "s"}`}
           </button>
@@ -291,7 +318,11 @@ export default function LeadAgent() {
                 </span>
                 <span className="lead-main">
                   <strong>{l.title}</strong>
-                  <span className="mono small muted">{new URL(l.url).hostname} · {l.source}</span>
+                  <span className="mono small muted">
+                    {new URL(l.url).hostname} · {l.source}
+                    {l.business && <span className={`biz biz-${l.business.label.toLowerCase()}`}>{l.business.label}</span>}
+                  </span>
+                  {l.emails?.[0] && <span className="lead-email mono small">✉ {l.emails[0]}{l.emails.length > 1 ? ` +${l.emails.length - 1}` : ""}</span>}
                 </span>
                 <span className={`pill lead-pill-${l.status}`}>{statusText[l.status]}</span>
               </button>
@@ -299,6 +330,12 @@ export default function LeadAgent() {
               {open && (
                 <div className="lead-body">
                   {l.error && <p className="muted small">{l.error}</p>}
+                  {l.business && (
+                    <div>
+                      <span className="label">Business signals · {l.business.score}/100</span>
+                      <p className="muted small">{l.business.signals.length ? l.business.signals.join(" · ") : "None found"}</p>
+                    </div>
+                  )}
                   {l.issues && l.issues.length > 0 && (
                     <div>
                       <span className="label">Issues found</span>
@@ -309,7 +346,17 @@ export default function LeadAgent() {
                   )}
                   <div className="lead-contacts">
                     <span className="label">Contact</span>
-                    {l.emails?.length ? l.emails.map((e) => <span key={e} className="tag selectable">{e}</span>) : <span className="muted small">No public email found.</span>}
+                    {l.emails?.length ? (
+                      l.emails.map((e) => (
+                        <span key={e} className="lead-email-item">
+                          <span className="tag selectable">{e}</span>
+                          {l.emailSources?.[e] && <span className="muted small">from {l.emailSources[e]}</span>}
+                          <button className="btn btn-ghost btn-sm" onClick={() => copy(e)}>Copy</button>
+                        </span>
+                      ))
+                    ) : (
+                      <span className="muted small">No public email found. Try the contact page or social links below.</span>
+                    )}
                     {l.contactPage && <a className="link small" href={l.contactPage} target="_blank" rel="noopener noreferrer">Contact page ↗</a>}
                     {l.socials?.map((s) => <a key={s} className="link small" href={s} target="_blank" rel="noopener noreferrer">{new URL(s).hostname} ↗</a>)}
                     <a className="link small" href={l.url} target="_blank" rel="noopener noreferrer">Open site ↗</a>
@@ -320,14 +367,18 @@ export default function LeadAgent() {
                       <input id={`subj-${l.url}`} value={l.subject || ""} onChange={(e) => update(l.url, { subject: e.target.value })} aria-label="Subject" />
                       <textarea id={`body-${l.url}`} rows={10} value={l.body} onChange={(e) => update(l.url, { body: e.target.value })} aria-label="Message" />
                       <div className="row">
-                        <button className="btn btn-ghost btn-sm" onClick={() => copy(`${l.subject}\n\n${l.body}`)}>Copy message</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => needsBug(l) || copy(`${l.subject}\n\n${l.body}`)}>Copy message</button>
                         {l.emails?.[0] && (
-                          <a className="btn btn-ghost btn-sm" href={`mailto:${l.emails[0]}?subject=${encodeURIComponent(l.subject || "")}&body=${encodeURIComponent(l.body || "")}`}>
+                          <a
+                            className="btn btn-ghost btn-sm"
+                            href={`mailto:${l.emails[0]}?subject=${encodeURIComponent(l.subject || "")}&body=${encodeURIComponent(l.body || "")}`}
+                            onClick={(e) => needsBug(l) && e.preventDefault()}
+                          >
                             Open in email app
                           </a>
                         )}
                         {l.status !== "contacted" ? (
-                          <button className="btn btn-primary btn-sm" onClick={() => update(l.url, { status: "contacted", contactedAt: new Date().toISOString() })}>Mark as sent</button>
+                          <button className="btn btn-primary btn-sm" onClick={() => needsBug(l) || update(l.url, { status: "contacted", contactedAt: new Date().toISOString() })}>Mark as sent</button>
                         ) : (
                           <span className="mono small muted">Sent {new Date(l.contactedAt!).toLocaleDateString()}</span>
                         )}
