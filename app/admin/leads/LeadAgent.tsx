@@ -23,11 +23,42 @@ interface Lead {
   need?: { score: number; label: "Needs testing" | "Some issues" | "Looks solid"; evidence: string[] };
   error?: string;
   addedAt: string;
+  checkedAt?: string;
   contactedAt?: string;
+  followedUpAt?: string;
 }
 
 const STORE = "shashiqa-leads-v1";
+const SEEN = "shashiqa-seen-v1"; // domains already handled, so they never come back
 const KEY = "shashiqa-admin-key";
+const DAY = 86_400_000;
+
+type Filter = "all" | LeadStatus | "followup";
+
+const hostOf = (url: string) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+};
+const age = (iso?: string) => (iso ? Date.now() - new Date(iso).getTime() : 0);
+const needsFollowUp = (l: Lead) => l.status === "contacted" && !l.followedUpAt && age(l.contactedAt) >= 5 * DAY;
+
+/** Old leads drop off on their own: skipped/errors after 3 days, unsent drafts after 14, contacted after 60. */
+function prune(ls: Lead[]) {
+  const keep: Lead[] = [];
+  const gone: Lead[] = [];
+  for (const l of ls) {
+    const since = l.checkedAt || l.addedAt;
+    const expired =
+      ((l.status === "skipped" || l.status === "error") && age(since) > 3 * DAY) ||
+      ((l.status === "ready" || l.status === "queued") && age(since) > 14 * DAY) ||
+      (l.status === "contacted" && age(l.followedUpAt || l.contactedAt) > 60 * DAY);
+    (expired ? gone : keep).push(l);
+  }
+  return { keep, gone };
+}
 
 function load<T>(k: string, fallback: T): T {
   try {
@@ -60,13 +91,17 @@ export default function LeadAgent() {
   const [running, setRunning] = useState(false);
   const [finding, setFinding] = useState(false);
   const [msg, setMsg] = useState("");
-  const [filter, setFilter] = useState<"all" | LeadStatus>("all");
+  const [filter, setFilter] = useState<Filter>("all");
+  const [seen, setSeen] = useState<string[]>([]);
   const [skipHobby, setSkipHobby] = useState(true);
   const [skipSolid, setSkipSolid] = useState(true);
   const [openUrl, setOpenUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    setLeads(load<Lead[]>(STORE, []));
+    const { keep, gone } = prune(load<Lead[]>(STORE, []));
+    setLeads(keep);
+    setSeen([...new Set([...load<string[]>(SEEN, []), ...gone.map((l) => hostOf(l.url))])]);
+    if (gone.length) setMsg(`Cleaned up ${gone.length} old lead${gone.length === 1 ? "" : "s"}. They won't be added again.`);
     try {
       const k = sessionStorage.getItem(KEY);
       if (k) {
@@ -76,14 +111,25 @@ export default function LeadAgent() {
     } catch {}
   }, []);
   useEffect(() => save(STORE, leads), [leads]);
+  useEffect(() => save(SEEN, seen.slice(-3000)), [seen]);
 
   const update = (url: string, patch: Partial<Lead>) =>
     setLeads((ls) => ls.map((l) => (l.url === url ? { ...l, ...patch } : l)));
 
+  /** Removes leads from the list but remembers their domains, so "Find new launches" skips them. */
+  function removeLeads(match: (l: Lead) => boolean) {
+    const gone = leads.filter(match);
+    setLeads((ls) => ls.filter((l) => !match(l)));
+    setSeen((s) => [...new Set([...s, ...gone.map((l) => hostOf(l.url))])]);
+    return gone.length;
+  }
+
   function addLeads(items: { url: string; title?: string; source: string; hnUser?: string }[]) {
+    const known = new Set(seen);
     setLeads((ls) => {
-      const have = new Set(ls.map((l) => new URL(l.url).hostname));
+      const have = new Set(ls.map((l) => hostOf(l.url)));
       const fresh: Lead[] = [];
+      let old = 0;
       for (const it of items) {
         let u: URL;
         try {
@@ -91,13 +137,31 @@ export default function LeadAgent() {
         } catch {
           continue;
         }
-        if (have.has(u.hostname)) continue;
-        have.add(u.hostname);
+        const h = hostOf(u.href);
+        if (have.has(h)) continue;
+        if (known.has(h) && it.source !== "Manual") {
+          old++;
+          continue;
+        }
+        have.add(h);
         fresh.push({ url: u.href, title: it.title || u.hostname, source: it.source, hnUser: it.hnUser, status: "queued", addedAt: new Date().toISOString() });
       }
-      setMsg(fresh.length ? `Added ${fresh.length} new site${fresh.length === 1 ? "" : "s"}.` : "No new sites. They're already in your list.");
+      const skippedNote = old ? ` Skipped ${old} you've already seen.` : "";
+      setMsg(fresh.length ? `Added ${fresh.length} new site${fresh.length === 1 ? "" : "s"}.${skippedNote}` : `No new sites.${skippedNote || " They're already in your list."}`);
       return [...fresh, ...ls];
     });
+  }
+
+  function cleanUp(kind: "skipped" | "keep-contacted" | "all") {
+    if (kind === "all") {
+      if (!confirm("Remove every lead, including people you've contacted? You'll lose your follow-up history.")) return;
+      if (leads.length && confirm("Download a CSV backup first?")) exportCsv();
+    }
+    const n = removeLeads((l) =>
+      kind === "skipped" ? l.status === "skipped" || l.status === "error" : kind === "keep-contacted" ? l.status !== "contacted" : true
+    );
+    setFilter("all");
+    setMsg(n ? `Removed ${n} lead${n === 1 ? "" : "s"}. Their sites won't be added again.` : "Nothing to clean up.");
   }
 
   async function api(path: string, body: unknown) {
@@ -159,6 +223,7 @@ export default function LeadAgent() {
         const solid = skipSolid && need?.label === "Looks solid";
         update(l.url, {
           status: hobby || solid ? "skipped" : "ready",
+          checkedAt: new Date().toISOString(),
           business,
           need,
           score: r.score,
@@ -218,11 +283,14 @@ export default function LeadAgent() {
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: leads.length };
     leads.forEach((l) => (c[l.status] = (c[l.status] || 0) + 1));
+    c.followup = leads.filter(needsFollowUp).length;
     return c;
   }, [leads]);
   // most promising first: real problems count double, business signals add on; unchecked leads stay on top
   const priority = (l: Lead) => (l.need ? l.need.score * 2 + (l.business?.score ?? 0) : 1000);
-  const shown = leads.filter((l) => filter === "all" || l.status === filter).sort((a, b) => priority(b) - priority(a));
+  const shown = leads
+    .filter((l) => filter === "all" || (filter === "followup" ? needsFollowUp(l) : l.status === filter))
+    .sort((a, b) => priority(b) - priority(a));
   const queued = (counts.queued || 0) + (counts.error || 0);
   const contactedToday = leads.filter((l) => l.contactedAt?.slice(0, 10) === new Date().toISOString().slice(0, 10)).length;
 
@@ -294,15 +362,30 @@ export default function LeadAgent() {
             <li>No reply in 5 days? One short follow-up, then stop.</li>
           </ol>
           <button className="btn btn-ghost btn-sm fit" onClick={exportCsv} disabled={!leads.length}>Export CSV</button>
+          <details className="agent-clean">
+            <summary className="label">Clean up</summary>
+            <p className="muted small">Old leads also clear themselves: skipped after 3 days, unsent after 14, contacted after 60. Removed sites are never added again.</p>
+            <div className="row">
+              <button className="btn btn-ghost btn-sm" onClick={() => cleanUp("skipped")}>Clear skipped & errors</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => cleanUp("keep-contacted")}>Clear all except contacted</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => cleanUp("all")}>Clear everything</button>
+            </div>
+          </details>
         </div>
       </div>
 
       {msg && <p className="agent-msg" role="status">{msg}</p>}
 
       <div className="agent-filters" role="tablist">
-        {(["all", "ready", "queued", "contacted", "skipped", "error"] as const).map((f) => (
-          <button key={f} role="tab" aria-selected={filter === f} className={filter === f ? "on" : ""} onClick={() => setFilter(f)}>
-            {f === "all" ? "All" : statusText[f]} <span>{counts[f] || 0}</span>
+        {(["all", "ready", "followup", "queued", "contacted", "skipped", "error"] as const).map((f) => (
+          <button
+            key={f}
+            role="tab"
+            aria-selected={filter === f}
+            className={`${filter === f ? "on" : ""} ${f === "followup" && counts.followup ? "due" : ""}`}
+            onClick={() => setFilter(f)}
+          >
+            {f === "all" ? "All" : f === "followup" ? "Follow up today" : statusText[f]} <span>{counts[f] || 0}</span>
           </button>
         ))}
       </div>
@@ -396,7 +479,17 @@ export default function LeadAgent() {
                         {l.status !== "contacted" ? (
                           <button className="btn btn-primary btn-sm" onClick={() => needsBug(l) || update(l.url, { status: "contacted", contactedAt: new Date().toISOString() })}>Mark as sent</button>
                         ) : (
-                          <span className="mono small muted">Sent {new Date(l.contactedAt!).toLocaleDateString()}</span>
+                          <>
+                            <span className="mono small muted">
+                              Sent {new Date(l.contactedAt!).toLocaleDateString()}
+                              {l.followedUpAt && ` · followed up ${new Date(l.followedUpAt).toLocaleDateString()}`}
+                            </span>
+                            {needsFollowUp(l) && (
+                              <button className="btn btn-primary btn-sm" onClick={() => update(l.url, { followedUpAt: new Date().toISOString() })}>
+                                Mark follow-up sent
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -408,7 +501,7 @@ export default function LeadAgent() {
                     {l.status !== "skipped" && l.status !== "contacted" && (
                       <button className="btn btn-ghost btn-sm" onClick={() => update(l.url, { status: "skipped" })}>Skip</button>
                     )}
-                    <button className="btn btn-ghost btn-sm" onClick={() => setLeads((ls) => ls.filter((x) => x.url !== l.url))}>Remove</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => removeLeads((x) => x.url === l.url)}>Remove</button>
                   </div>
                 </div>
               )}
