@@ -33,6 +33,16 @@ export interface Report {
   summary: string;
   topFixes: string[];
   aiWritten: boolean;
+  browser?: BrowserFindings;
+}
+
+/** What Google's real Chrome run (Lighthouse, mobile) saw while loading the page. */
+export interface BrowserFindings {
+  consoleErrors: { message: string; source: string; firstParty: boolean }[];
+  failedRequests: { url: string; status: number; type: string; firstParty: boolean }[];
+  lcpMs: number | null;
+  cls: number | null;
+  a11yFailures: string[];
 }
 
 const UA = "ShashiQA-WebsiteCheck/1.0 (+https://shashi.qa/check)";
@@ -340,6 +350,38 @@ interface PsiResult {
   scores: Record<string, number>;
   metrics: { label: string; value: string; status: Status }[];
   opportunities: CheckItem[];
+  browser: BrowserFindings;
+}
+
+/* Third-party noise that says nothing about the site's own quality */
+const NOISE = /favicon|chrome-extension|ERR_BLOCKED_BY_CLIENT|google-analytics|googletagmanager|doubleclick|facebook\.net|hotjar|clarity\.ms|sentry|intercom|crisp\.chat/i;
+
+function browserFindings(a: Record<string, any>, pageUrl: string): BrowserFindings {
+  const site = new URL(pageUrl).hostname.replace(/^www\./, "");
+  const firstParty = (u: string) => {
+    try {
+      const h = new URL(u).hostname;
+      return h === site || h.endsWith("." + site);
+    } catch {
+      return true; // inline scripts and relative sources belong to the page itself
+    }
+  };
+  const consoleErrors = ((a["errors-in-console"]?.details?.items as any[]) || [])
+    .map((i) => {
+      const source = String(i.sourceLocation?.url || i.url || "");
+      return { message: String(i.description || "").slice(0, 220), source, firstParty: !source || firstParty(source) };
+    })
+    .filter((e) => e.message && !NOISE.test(e.message + " " + e.source))
+    .slice(0, 8);
+  const failedRequests = ((a["network-requests"]?.details?.items as any[]) || [])
+    .filter((r) => Number(r.statusCode) >= 400 && !NOISE.test(String(r.url)))
+    .map((r) => ({ url: String(r.url).slice(0, 200), status: Number(r.statusCode), type: String(r.resourceType || ""), firstParty: firstParty(String(r.url)) }))
+    .slice(0, 8);
+  const a11yFailures = ["color-contrast", "button-name", "link-name", "label", "image-alt", "tap-targets", "target-size"]
+    .filter((id) => a[id] && a[id].score === 0)
+    .map((id) => String(a[id].title));
+  const num = (id: string) => (typeof a[id]?.numericValue === "number" ? a[id].numericValue : null);
+  return { consoleErrors, failedRequests, lcpMs: num("largest-contentful-paint"), cls: num("cumulative-layout-shift"), a11yFailures };
 }
 
 async function runPageSpeed(url: string): Promise<PsiResult | null> {
@@ -380,7 +422,7 @@ async function runPageSpeed(url: string): Promise<PsiResult | null> {
         status: (x.score < 0.5 ? "fail" : "warn") as Status,
         detail: `Could save about ${(x.details.overallSavingsMs / 1000).toFixed(1)} s on mobile.`,
       }));
-    return { scores, metrics, opportunities };
+    return { scores, metrics, opportunities, browser: browserFindings(a, lh.finalDisplayedUrl || lh.finalUrl || url) };
   } catch {
     return null;
   }
@@ -489,6 +531,7 @@ export async function runCheck(input: string): Promise<Report> {
     categories,
     metrics: psi?.metrics ?? [],
     pagespeed: (psi ? "ok" : "unavailable") as Report["pagespeed"],
+    browser: psi?.browser,
   };
   const ai = await aiSummary(base);
   const fallback = ruleSummary(base);

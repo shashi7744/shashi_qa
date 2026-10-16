@@ -280,6 +280,78 @@ export function businessSignals(html: string, siteUrl: string, ownDomainEmail: b
   return { score, label: score >= 45 ? "Business" : score >= 20 ? "Maybe" : "Hobby", signals, flow };
 }
 
+/* ---------- Step 2c: does the site actually need testing? ---------- */
+
+export interface Need {
+  score: number; // 0-100, higher = more real problems
+  label: "Needs testing" | "Some issues" | "Looks solid";
+  evidence: string[]; // where to start your manual check
+}
+
+const shortUrl = (u: string) => u.replace(/^https?:\/\//, "").slice(0, 90);
+
+/** Scores real, user-facing problems (errors, failed requests, broken links, mobile UX) far above SEO tidy-ups. */
+export function testingNeed(report: Report): Need {
+  const b = report.browser;
+  const items = report.categories.flatMap((c) => c.items);
+  const evidence: string[] = [];
+  let score = 0;
+
+  if (b) {
+    const own = b.consoleErrors.filter((e) => e.firstParty);
+    if (own.length) {
+      score += 30 + Math.min(10, (own.length - 1) * 5);
+      own.slice(0, 3).forEach((e) => evidence.push(`JavaScript error on page load: ${e.message}`));
+    } else if (b.consoleErrors.length) {
+      score += 5;
+      evidence.push(`Third-party script error: ${b.consoleErrors[0].message}`);
+    }
+    const ownFail = b.failedRequests.filter((r) => r.firstParty);
+    if (ownFail.length) {
+      score += 25;
+      ownFail.slice(0, 3).forEach((r) => evidence.push(`Request failed (HTTP ${r.status}, ${r.type || "file"}): ${shortUrl(r.url)}`));
+    } else if (b.failedRequests.length) {
+      score += 5;
+      evidence.push(`Third-party request failed (HTTP ${b.failedRequests[0].status}): ${shortUrl(b.failedRequests[0].url)}`);
+    }
+    if (b.lcpMs !== null && b.lcpMs > 4000) {
+      score += 10;
+      evidence.push(`Slow on phones: main content appears after ${(b.lcpMs / 1000).toFixed(1)} s`);
+    } else if (b.lcpMs !== null && b.lcpMs > 2500) {
+      score += 5;
+    }
+    if (b.cls !== null && b.cls > 0.25) {
+      score += 10;
+      evidence.push(`Layout jumps while loading (CLS ${b.cls.toFixed(2)}): buttons can move under the user's finger`);
+    }
+    if (b.a11yFailures.length) {
+      score += Math.min(10, b.a11yFailures.length * 4);
+      evidence.push(`Accessibility: ${b.a11yFailures.slice(0, 3).join("; ")}`);
+    }
+  } else {
+    evidence.push("Google's browser test didn't run for this site, so only basic checks were used.");
+  }
+
+  const find = (id: string) => items.find((i) => i.id === id && i.status !== "pass");
+  const broken = find("broken");
+  if (broken) {
+    score += broken.status === "fail" ? 20 : 12;
+    evidence.push(`Broken links or images: ${broken.detail}`);
+  }
+  if (find("viewport")) {
+    score += 15;
+    evidence.push("No mobile viewport tag: the page looks zoomed out on phones");
+  }
+  if (find("mixed")) {
+    score += 10;
+    evidence.push("Insecure files on a secure page: browsers may block them");
+  }
+  if (find("https")) score += 10;
+
+  score = Math.min(100, score);
+  return { score, label: score >= 30 ? "Needs testing" : score >= 15 ? "Some issues" : "Looks solid", evidence };
+}
+
 /* ---------- Step 3: draft a personal message ---------- */
 
 export interface Draft {

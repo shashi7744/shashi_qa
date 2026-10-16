@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { runCheck, UserError } from "@/lib/checker";
-import { checkAdmin, draftMessage, findContacts, topIssues, type Contacts } from "@/lib/outreach";
+import { checkAdmin, draftMessage, findContacts, testingNeed, topIssues, type Contacts } from "@/lib/outreach";
 import { site } from "@/app/data";
 
 export const runtime = "nodejs";
@@ -26,6 +26,7 @@ export async function POST(req: Request) {
       title: product || report.pageTitle,
       score: report.overall,
       issues: topIssues(report, 5).map((i) => ({ status: i.status, text: `${i.title}: ${i.detail}` })),
+      need: testingNeed(report),
       contacts,
       draft,
     });

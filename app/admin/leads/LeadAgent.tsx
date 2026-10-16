@@ -20,6 +20,7 @@ interface Lead {
   body?: string;
   aiWritten?: boolean;
   business?: { score: number; label: "Business" | "Maybe" | "Hobby"; signals: string[] };
+  need?: { score: number; label: "Needs testing" | "Some issues" | "Looks solid"; evidence: string[] };
   error?: string;
   addedAt: string;
   contactedAt?: string;
@@ -60,8 +61,8 @@ export default function LeadAgent() {
   const [finding, setFinding] = useState(false);
   const [msg, setMsg] = useState("");
   const [filter, setFilter] = useState<"all" | LeadStatus>("all");
-  const [maxScore, setMaxScore] = useState(95);
   const [skipHobby, setSkipHobby] = useState(true);
+  const [skipSolid, setSkipSolid] = useState(true);
   const [openUrl, setOpenUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -152,12 +153,14 @@ export default function LeadAgent() {
       update(l.url, { status: "checking", error: undefined });
       try {
         const r = await api("/api/agent/analyze", { url: l.url, product: l.title, hnUser: l.hnUser });
-        const good = r.score > maxScore;
         const business = r.contacts.business as Lead["business"];
+        const need = r.need as Lead["need"];
         const hobby = skipHobby && business?.label === "Hobby";
+        const solid = skipSolid && need?.label === "Looks solid";
         update(l.url, {
-          status: good || hobby ? "skipped" : "ready",
+          status: hobby || solid ? "skipped" : "ready",
           business,
+          need,
           score: r.score,
           issues: r.issues,
           emails: r.contacts.emails,
@@ -169,8 +172,8 @@ export default function LeadAgent() {
           aiWritten: r.draft.aiWritten,
           error: hobby
             ? "Looks like a hobby project: no pricing, payments, sign-up or app found, so it's unlikely to pay for testing."
-            : good
-            ? `Scored ${r.score}. Site is in good shape, so a cold message is unlikely to land.`
+            : solid
+            ? "Looks solid: no errors, failed requests or broken links found automatically. Low chance of a bug-first pitch."
             : undefined,
         });
       } catch (err) {
@@ -217,7 +220,9 @@ export default function LeadAgent() {
     leads.forEach((l) => (c[l.status] = (c[l.status] || 0) + 1));
     return c;
   }, [leads]);
-  const shown = leads.filter((l) => filter === "all" || l.status === filter);
+  // most promising first: real problems count double, business signals add on; unchecked leads stay on top
+  const priority = (l: Lead) => (l.need ? l.need.score * 2 + (l.business?.score ?? 0) : 1000);
+  const shown = leads.filter((l) => filter === "all" || l.status === filter).sort((a, b) => priority(b) - priority(a));
   const queued = (counts.queued || 0) + (counts.error || 0);
   const contactedToday = leads.filter((l) => l.contactedAt?.slice(0, 10) === new Date().toISOString().slice(0, 10)).length;
 
@@ -267,9 +272,11 @@ export default function LeadAgent() {
         </div>
         <div className="card agent-step">
           <span className="step-tag mono">2 · Check & draft</span>
-          <p className="muted small">Runs your website check on every queued site, looks for a public contact email, and writes a draft. About 30 seconds per site.</p>
-          <label htmlFor="maxscore" className="label">Skip sites scoring above {maxScore}</label>
-          <input id="maxscore" type="range" min={50} max={100} value={maxScore} onChange={(e) => setMaxScore(Number(e.target.value))} />
+          <p className="muted small">Loads each site in Google's real mobile browser, looks for errors, failed requests and broken links, finds a contact email, and writes a draft. About 30 seconds per site.</p>
+          <label className="agent-check">
+            <input type="checkbox" checked={skipSolid} onChange={(e) => setSkipSolid(e.target.checked)} />
+            Skip sites that look solid (no real problems found)
+          </label>
           <label className="agent-check">
             <input type="checkbox" checked={skipHobby} onChange={(e) => setSkipHobby(e.target.checked)} />
             Skip hobby projects (no pricing, payments, sign-up or app)
@@ -321,6 +328,7 @@ export default function LeadAgent() {
                   <span className="mono small muted">
                     {new URL(l.url).hostname} · {l.source}
                     {l.business && <span className={`biz biz-${l.business.label.toLowerCase()}`}>{l.business.label}</span>}
+                    {l.need && <span className={`biz need-${l.need.label.split(" ")[0].toLowerCase()}`}>{l.need.label}</span>}
                   </span>
                   {l.emails?.[0] && <span className="lead-email mono small">✉ {l.emails[0]}{l.emails.length > 1 ? ` +${l.emails.length - 1}` : ""}</span>}
                 </span>
@@ -330,6 +338,14 @@ export default function LeadAgent() {
               {open && (
                 <div className="lead-body">
                   {l.error && <p className="muted small">{l.error}</p>}
+                  {l.need && l.need.evidence.length > 0 && (
+                    <div className="start-here">
+                      <span className="label">Start your manual check here · needs testing {l.need.score}/100</span>
+                      <ul className="lead-issues">
+                        {l.need.evidence.map((e) => <li key={e} className="li-fail">{e}</li>)}
+                      </ul>
+                    </div>
+                  )}
                   {l.business && (
                     <div>
                       <span className="label">Business signals · {l.business.score}/100</span>
