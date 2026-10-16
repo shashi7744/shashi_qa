@@ -96,6 +96,7 @@ export default function LeadAgent() {
   const [skipHobby, setSkipHobby] = useState(true);
   const [skipSolid, setSkipSolid] = useState(true);
   const [openUrl, setOpenUrl] = useState<string | null>(null);
+  const [warnUrl, setWarnUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const { keep, gone } = prune(load<Lead[]>(STORE, []));
@@ -252,7 +253,8 @@ export default function LeadAgent() {
   /** Blocks sending while the draft still has the placeholder for the bug you found yourself. */
   function needsBug(l: Lead) {
     if (!l.body?.includes("[YOUR BUG HERE")) return false;
-    setMsg("First test the site yourself and replace [YOUR BUG HERE …] with a real bug you found.");
+    setWarnUrl(l.url); // shown right under the buttons, where you're looking
+    document.getElementById(`body-${l.url}`)?.focus();
     return true;
   }
 
@@ -470,6 +472,17 @@ export default function LeadAgent() {
                         {l.emails?.[0] && (
                           <a
                             className="btn btn-ghost btn-sm"
+                            href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(l.emails[0])}&su=${encodeURIComponent(l.subject || "")}&body=${encodeURIComponent(l.body || "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => needsBug(l) && e.preventDefault()}
+                          >
+                            Open in Gmail
+                          </a>
+                        )}
+                        {l.emails?.[0] && (
+                          <a
+                            className="btn btn-ghost btn-sm"
                             href={`mailto:${l.emails[0]}?subject=${encodeURIComponent(l.subject || "")}&body=${encodeURIComponent(l.body || "")}`}
                             onClick={(e) => needsBug(l) && e.preventDefault()}
                           >
@@ -492,6 +505,12 @@ export default function LeadAgent() {
                           </>
                         )}
                       </div>
+                      {warnUrl === l.url && l.body?.includes("[YOUR BUG HERE") && (
+                        <p className="form-error" role="alert">
+                          Can&apos;t send yet: replace the line <strong>[YOUR BUG HERE …]</strong> in the message above with a real bug you
+                          found on this site. Generic emails rarely get replies.
+                        </p>
+                      )}
                     </div>
                   )}
                   <div className="row">
