@@ -2,13 +2,19 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { packages, site } from "../data";
+import { eur, services, site } from "../data";
 
 type Status = "idle" | "sending" | "sent" | "error";
 
+const FREE = "Free manual test";
+const planLabel = (service: string, plan: string, price: number, per: string) => `${service} · ${plan} (${eur(price)} ${per})`;
+
 export default function ContactForm() {
   const params = useSearchParams();
-  const initialPlan = params.get("plan") ?? "free";
+  // "Choose" buttons on /services link here with ?service=web&plan=Business
+  const svc = services.find((s) => s.key === params.get("service"));
+  const chosen = svc?.plans.find((p) => p.name === params.get("plan"));
+  const initialPlan = svc && chosen ? planLabel(svc.label, chosen.name, chosen.price, chosen.per) : svc ? `${svc.label} · not sure yet` : FREE;
   const initialUrl = params.get("url") ?? "";
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
@@ -53,23 +59,30 @@ export default function ContactForm() {
           <input id="name" name="name" required placeholder="Jane Doe" />
         </label>
         <label htmlFor="email">Work email
-          <input id="email" name="email" type="email" required placeholder="jane@startup.com" />
+          <input id="email" name="email" type="email" required placeholder="jane@yourbusiness.nl" />
         </label>
       </div>
-      <label htmlFor="url">App or website link
-        <input id="url" name="url" type="url" placeholder="https://yourapp.com" defaultValue={initialUrl} />
+      <label htmlFor="url">Your website or Instagram (if you have one)
+        <input id="url" name="url" type="text" placeholder="yourbusiness.nl or @yourbusiness" defaultValue={initialUrl} />
       </label>
       <label htmlFor="plan">I'm interested in
         <select id="plan" name="plan" defaultValue={initialPlan}>
-          <option value="free">Free manual test</option>
-          {packages.map((p) => (
-            <option key={p.id} value={p.id}>{p.name} ({p.price} {p.unit})</option>
+          <option value={FREE}>{FREE}</option>
+          {services.map((s) => (
+            <optgroup key={s.key} label={s.label}>
+              {s.plans.map((p) => {
+                const label = planLabel(s.label, p.name, p.price, p.per);
+                return <option key={p.name} value={label}>{label}</option>;
+              })}
+              <option value={`${s.label} · not sure yet`}>{s.label} · not sure yet</option>
+            </optgroup>
           ))}
-          <option value="job">Hiring for a QA / frontend role</option>
+          <option value="Something else / several services">Something else / several services</option>
+          <option value="Hiring for a QA / frontend role">Hiring for a QA / frontend role</option>
         </select>
       </label>
       <label htmlFor="message">Message
-        <textarea id="message" name="message" required rows={5} placeholder="What does your app do, and when are you releasing next?" />
+        <textarea id="message" name="message" required rows={5} placeholder="What does your business do, what do you need, and by when?" />
       </label>
       {status === "error" && <p className="form-error" role="alert">{error}</p>}
       <button type="submit" className="btn btn-primary" disabled={status === "sending"}>

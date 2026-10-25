@@ -5,7 +5,8 @@ import { site } from "../data";
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: "Get a free manual test or a quote for software testing.",
+  alternates: { canonical: "/contact" },
+  description: "Get a fixed quote in EUR for a website, CRM, AI video, Instagram content or software testing.",
 };
 
 export default function Contact() {
@@ -13,9 +14,10 @@ export default function Contact() {
     <>
       <section className="container page-head">
         <span className="eyebrow">Contact</span>
-        <h1>Let's test your app.</h1>
+        <h1>Tell me what you need.</h1>
         <p className="lead">
-          Tell me about your product. I reply within 24 hours, and the first manual test is free.
+          A website, a CRM, AI videos, Instagram content or testing. You&apos;ll get a plan and a fixed quote in EUR within
+          24 hours, and the first manual test is free.
         </p>
       </section>
 
@@ -31,8 +33,12 @@ export default function Contact() {
               <a href={site.github} target="_blank" rel="noopener noreferrer" className="link">github.com/shashi7744 ↗</a>
             </div>
             <div className="contact-item">
-              <span className="label">Location</span>
-              <span>{site.location} · Remote worldwide</span>
+              <span className="label">Serving</span>
+              <span>{site.serving}</span>
+            </div>
+            <div className="contact-item">
+              <span className="label">Hours</span>
+              <span>{site.hours}</span>
             </div>
             <div className="contact-item">
               <span className="label">Free manual test includes</span>

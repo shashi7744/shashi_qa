@@ -10,7 +10,7 @@ export default function Footer() {
             <span className="brand-mark" />
             {site.brand}
           </span>
-          <p className="muted">Manual QA and release testing for startups and small teams.</p>
+          <p className="muted">Websites, CRMs, AI video, Instagram and software testing for businesses in the Netherlands and Luxembourg.</p>
         </div>
         <div className="stack-sm">
           <span className="label">Pages</span>
@@ -22,11 +22,12 @@ export default function Footer() {
           <span className="label">Contact</span>
           <span className="selectable">{site.email}</span>
           <a href={site.github} target="_blank" rel="noopener noreferrer">GitHub ↗</a>
-          <span className="muted">{site.location} · Remote worldwide</span>
+          <span className="muted">{site.serving}</span>
+          <span className="muted">{site.hours}</span>
         </div>
       </div>
       <div className="container footer-bottom">
-        <span>© {new Date().getFullYear()} {site.name}</span>
+        <span>© {new Date().getFullYear()} {site.name} · Prices in EUR excl. VAT</span>
         <span className="mono">status: all checks passing ✓</span>
       </div>
     </footer>

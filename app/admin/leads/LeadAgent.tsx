@@ -304,7 +304,7 @@ export default function LeadAgent() {
         <p className="muted">Finds new product launches, checks their sites, and drafts a personal message for each one.</p>
         <form className="form" onSubmit={login}>
           <label htmlFor="admin-key">Admin password
-            <input id="admin-key" type="password" value={key} onChange={(e) => setKey(e.target.value)} required />
+            <input id="admin-key" type="password" autoComplete="current-password" value={key} onChange={(e) => setKey(e.target.value)} required />
           </label>
           {msg && <p className="form-error" role="alert">{msg}</p>}
           <button className="btn btn-primary">Unlock</button>

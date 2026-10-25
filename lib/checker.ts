@@ -391,7 +391,7 @@ async function runPageSpeed(url: string): Promise<PsiResult | null> {
   for (const c of ["performance", "accessibility", "best-practices", "seo"]) api.searchParams.append("category", c);
   if (process.env.PAGESPEED_API_KEY) api.searchParams.set("key", process.env.PAGESPEED_API_KEY);
   try {
-    const res = await fetchWithTimeout(api.href, {}, 50000);
+    const res = await fetchWithTimeout(api.href, {}, 42000);
     if (!res.ok) return null;
     const data = await res.json();
     const lh = data.lighthouseResult;
@@ -483,7 +483,7 @@ Rules: topFixes are the three changes with the biggest impact, most important fi
           messages: [{ role: "user", content: prompt }],
         }),
       },
-      30000
+      12000
     );
     if (!res.ok) return null;
     const data = await res.json();

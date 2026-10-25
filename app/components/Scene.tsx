@@ -31,6 +31,8 @@ type Motion = {
   scroll: React.MutableRefObject<number>;
   hover: React.MutableRefObject<boolean>;
   flick: React.MutableRefObject<number>;
+  tint: React.MutableRefObject<THREE.Color>; // colour of the section in view (data-tint)
+  color: THREE.Color; // current colour, eased toward tint every frame
   speed: number;
 };
 
@@ -94,23 +96,26 @@ function buildGraph() {
 
 const additive = { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending } as const;
 
-function Orbit({ radius, tilt, speed, color, sats, motion }: {
-  radius: number; tilt: [number, number, number]; speed: number; color: THREE.Color; sats: number; motion: Motion;
+function Orbit({ radius, tilt, speed, color, sats, motion, follow = false }: {
+  radius: number; tilt: [number, number, number]; speed: number; color: THREE.Color; sats: number; motion: Motion; follow?: boolean;
 }) {
   const glow = useMemo(getGlow, []);
   const refs = useRef<THREE.Sprite[]>([]);
+  const ringMat = useRef<THREE.MeshBasicMaterial>(null!);
   useFrame((state) => {
     const t = state.clock.elapsedTime * motion.speed;
     refs.current.forEach((s, k) => {
       const a = t * speed + (k / sats) * Math.PI * 2;
       s.position.set(Math.cos(a) * radius, Math.sin(a) * radius, 0);
+      if (follow) (s.material as THREE.SpriteMaterial).color.copy(motion.color);
     });
+    if (follow) ringMat.current.color.copy(motion.color);
   });
   return (
     <group rotation={tilt}>
       <mesh>
         <torusGeometry args={[radius, 0.005, 6, 200]} />
-        <meshBasicMaterial color={color} opacity={0.3} {...additive} />
+        <meshBasicMaterial ref={ringMat} color={color} opacity={0.3} {...additive} />
       </mesh>
       {Array.from({ length: sats }, (_, k) => (
         <sprite key={k} ref={(el) => { if (el) refs.current[k] = el; }} scale={0.38}>
@@ -143,6 +148,9 @@ function Lattice({ target, motion, pulseCount }: { target: [number, number, numb
   const bugMat = useRef<THREE.PointsMaterial>(null!);
   const pulseMat = useRef<THREE.PointsMaterial>(null!);
   const shocks = useRef<THREE.Mesh[]>([]);
+  const atmoMat = useRef<THREE.SpriteMaterial>(null!);
+  const ringMat = useRef<THREE.MeshBasicMaterial>(null!);
+  const discMat = useRef<THREE.MeshBasicMaterial>(null!);
 
   const edgeGeo = useMemo(() => {
     const g = new THREE.BufferGeometry();
@@ -183,6 +191,10 @@ function Lattice({ target, motion, pulseCount }: { target: [number, number, numb
   useFrame((state, dt) => {
     const s = motion.speed;
     const t = state.clock.elapsedTime * s;
+    const C = motion.color;
+    atmoMat.current.color.copy(C);
+    ringMat.current.color.copy(C);
+    discMat.current.color.copy(C);
     const [px, py] = motion.pointer.current;
     const g = group.current;
     const hover = motion.hover.current;
@@ -242,7 +254,7 @@ function Lattice({ target, motion, pulseCount }: { target: [number, number, numb
     for (let i = 0; i < verts.length; i++) {
       const hit = Math.exp(-((verts[i].y - scanY) ** 2) / 0.1);
       level[i] = hit;
-      const col = isBug[i] ? BUG : TEAL;
+      const col = isBug[i] ? BUG : C;
       const k = isBug[i] ? 1.1 + 0.6 * hit + ex * 0.4 : 0.45 + 1.3 * hit + ex * 0.45;
       nc[i * 3] = col.r * k;
       nc[i * 3 + 1] = col.g * k;
@@ -254,8 +266,8 @@ function Lattice({ target, motion, pulseCount }: { target: [number, number, numb
     edges.forEach(([a, b], i) => {
       const ka = 0.2 + 0.9 * level[a] + ex * 0.25;
       const kb = 0.2 + 0.9 * level[b] + ex * 0.25;
-      ec[i * 6] = TEAL.r * ka; ec[i * 6 + 1] = TEAL.g * ka; ec[i * 6 + 2] = TEAL.b * ka;
-      ec[i * 6 + 3] = TEAL.r * kb; ec[i * 6 + 4] = TEAL.g * kb; ec[i * 6 + 5] = TEAL.b * kb;
+      ec[i * 6] = C.r * ka; ec[i * 6 + 1] = C.g * ka; ec[i * 6 + 2] = C.b * ka;
+      ec[i * 6 + 3] = C.r * kb; ec[i * 6 + 4] = C.g * kb; ec[i * 6 + 5] = C.b * kb;
     });
     edgeGeo.attributes.color.needsUpdate = true;
 
@@ -310,7 +322,7 @@ function Lattice({ target, motion, pulseCount }: { target: [number, number, numb
       <group ref={spin}>
       {/* atmosphere behind the lattice */}
       <sprite scale={11} renderOrder={-1}>
-        <spriteMaterial map={glow} color={TEAL} opacity={0.07} {...additive} />
+        <spriteMaterial ref={atmoMat} map={glow} color={TEAL} opacity={0.07} {...additive} />
       </sprite>
 
       <lineSegments geometry={edgeGeo}>
@@ -351,14 +363,14 @@ function Lattice({ target, motion, pulseCount }: { target: [number, number, numb
       {/* scanner */}
       <mesh ref={ring} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[1, 0.01, 8, 128]} />
-        <meshBasicMaterial color={TEAL} opacity={1} {...additive} />
+        <meshBasicMaterial ref={ringMat} color={TEAL} opacity={1} {...additive} />
       </mesh>
       <mesh ref={disc} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[1, 1]} />
-        <meshBasicMaterial map={glow} color={TEAL} opacity={0.22} side={THREE.DoubleSide} {...additive} />
+        <meshBasicMaterial ref={discMat} map={glow} color={TEAL} opacity={0.22} side={THREE.DoubleSide} {...additive} />
       </mesh>
 
-      <Orbit radius={3.15} tilt={[1.15, 0, 0.35]} speed={0.5} color={TEAL} sats={2} motion={motion} />
+      <Orbit radius={3.15} tilt={[1.15, 0, 0.35]} speed={0.5} color={TEAL} sats={2} motion={motion} follow />
       <Orbit radius={3.6} tilt={[1.9, 0.4, -0.5]} speed={-0.32} color={VIOLET} sats={1} motion={motion} />
       </group>
     </group>
@@ -403,17 +415,17 @@ function Dust({ count, size, inner, depth, phase, motion }: {
   );
 }
 
-function Cubes() {
+function Cubes({ count = 12 }: { count?: number }) {
   // small floating "test case" cubes and diamonds
   const items = useMemo(
     () =>
-      Array.from({ length: 12 }, (_, i) => ({
+      Array.from({ length: count }, (_, i) => ({
         pos: [(Math.random() - 0.5) * 16, (Math.random() - 0.5) * 9, -2 - Math.random() * 5] as [number, number, number],
         size: 0.18 + Math.random() * 0.25,
         color: i % 4 === 0 ? AMBER : i % 5 === 0 ? VIOLET : TEAL,
         diamond: i % 3 === 0,
       })),
-    []
+    [count]
   );
   return (
     <>
@@ -489,20 +501,23 @@ function Swarm({ count, motion }: { count: number; motion: Motion }) {
   // the cursor pushes them away and lights them up, scrolling sweeps them along
   const glow = useMemo(getGlow, []);
   const mat = useRef<THREE.PointsMaterial>(null!);
-  const { geo, vel, base, boost } = useMemo(() => {
-    const palette = [TEAL, TEAL, SIGNAL, VIOLET, AMBER];
+  const { geo, vel, base, boost, tinted } = useMemo(() => {
+    const palette = [null, null, SIGNAL, VIOLET, AMBER]; // null = follows the section colour
     const p = new Float32Array(count * 3);
     const base = new Float32Array(count * 3);
+    const tinted = new Uint8Array(count);
     for (let i = 0; i < count; i++) {
       p[i * 3] = (Math.random() - 0.5) * 22;
       p[i * 3 + 1] = (Math.random() - 0.5) * 12;
       p[i * 3 + 2] = -3 + Math.random() * 5;
-      palette[Math.floor(Math.random() * palette.length)].toArray(base, i * 3);
+      const pick = palette[Math.floor(Math.random() * palette.length)];
+      if (pick) pick.toArray(base, i * 3);
+      else tinted[i] = 1;
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.BufferAttribute(p, 3));
     geo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(count * 3), 3));
-    return { geo, vel: new Float32Array(count * 2), base, boost: new Float32Array(count) };
+    return { geo, vel: new Float32Array(count * 2), base, boost: new Float32Array(count), tinted };
   }, [count]);
 
   useFrame((state, dt) => {
@@ -552,9 +567,10 @@ function Swarm({ count, motion }: { count: number; motion: Motion }) {
       p[o] = nx;
       p[o + 1] = ny;
       const k = 0.55 + boost[i] * 2;
-      c[o] = base[o] * k;
-      c[o + 1] = base[o + 1] * k;
-      c[o + 2] = base[o + 2] * k;
+      const C = motion.color;
+      c[o] = (tinted[i] ? C.r : base[o]) * k;
+      c[o + 1] = (tinted[i] ? C.g : base[o + 1]) * k;
+      c[o + 2] = (tinted[i] ? C.b : base[o + 2]) * k;
     }
     geo.attributes.position.needsUpdate = true;
     geo.attributes.color.needsUpdate = true;
@@ -577,6 +593,7 @@ function Rig({ motion }: { motion: Motion }) {
     cam.position.y += (-py * 0.6 - cam.position.y) * 0.03;
     cam.lookAt(0, 0, 0);
     motion.scroll.current *= 0.92;
+    motion.color.lerp(motion.tint.current, 0.04); // fade smoothly to the colour of the section in view
   });
   return null;
 }
@@ -587,8 +604,36 @@ export default function Scene() {
   const scroll = useRef(0);
   const hover = useRef(false);
   const flick = useRef(0);
+  const tint = useRef(TEAL.clone());
+  const color = useRef(TEAL.clone());
   const [mobile, setMobile] = useState(false);
   const [reduced, setReduced] = useState(false);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const onVis = () => setVisible(!document.hidden); // stop rendering in background tabs
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
+
+  // The scene takes on the colour of whichever [data-tint] section is in the middle of the screen
+  useEffect(() => {
+    const pick = () => {
+      const mid = window.innerHeight * 0.45;
+      let hex: string | undefined;
+      document.querySelectorAll<HTMLElement>("[data-tint]").forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (r.top < mid && r.bottom > mid) hex = el.dataset.tint;
+      });
+      tint.current.set(hex || "#3ee0cf");
+    };
+    const t = setTimeout(pick, 300); // wait for the new page to render
+    window.addEventListener("scroll", pick, { passive: true });
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("scroll", pick);
+    };
+  }, [pathname]);
 
   useEffect(() => {
     let lastY = window.scrollY;
@@ -624,15 +669,18 @@ export default function Scene() {
     };
   }, []);
 
-  const motion = useMemo<Motion>(() => ({ pointer, scroll, hover, flick, speed: reduced ? 0.25 : 1 }), [reduced]);
+  const motion = useMemo<Motion>(
+    () => ({ pointer, scroll, hover, flick, tint, color: color.current, speed: reduced ? 0.25 : 1 }),
+    [reduced]
+  );
   const base = layouts[pathname] ?? layouts["/"];
   const target: [number, number, number] = mobile ? [0, -2.2, base[2] * 0.7] : base;
-
   return (
     <div className="scene" aria-hidden="true">
       <Canvas
         camera={{ position: [0, 0, 9], fov: 50 }}
         dpr={[1, 1.75]}
+        frameloop={visible ? "always" : "never"} // stop rendering in background tabs; nothing visible changes
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       >
         <fog attach="fog" args={[BG, 11, 30]} />

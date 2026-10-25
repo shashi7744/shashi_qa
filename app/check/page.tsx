@@ -3,6 +3,7 @@ import WebsiteChecker from "./WebsiteChecker";
 
 export const metadata: Metadata = {
   title: "Free Website Scan",
+  alternates: { canonical: "/check" },
   description:
     "Check your website's speed, SEO, accessibility, security and broken links in under a minute. Free report with an AI-written summary of what to fix first.",
 };

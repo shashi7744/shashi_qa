@@ -6,6 +6,7 @@ import { projects } from "../data";
 
 export const metadata: Metadata = {
   title: "Projects",
+  alternates: { canonical: "/projects" },
   description: "Web apps built and tested by Shashi Gautam, including a parking management system and client data app.",
 };
 
