@@ -126,6 +126,65 @@ function Orbit({ radius, tilt, speed, color, sats, motion, follow = false }: {
   );
 }
 
+/* A small atom at the very centre: a tight nucleus of protons (amber) and neutrons (pale blue),
+   gently pulsing, with three electrons on tilted orbits. Sits inside the violet core shape. */
+function Nucleus({ motion }: { motion: Motion }) {
+  const glow = useMemo(getGlow, []);
+  const cluster = useRef<THREE.Group>(null!);
+  const electrons = useRef<THREE.Sprite[]>([]);
+  const particles = useMemo(() => {
+    const n = 12; // around a centre particle, spread evenly on a small sphere
+    const out: { p: [number, number, number]; proton: boolean }[] = [{ p: [0, 0, 0], proton: true }];
+    for (let i = 0; i < n; i++) {
+      const y = 1 - (i / (n - 1)) * 2;
+      const r = Math.sqrt(1 - y * y);
+      const th = i * 2.39996; // golden angle
+      out.push({ p: [Math.cos(th) * r * 0.16, y * 0.16, Math.sin(th) * r * 0.16], proton: i % 2 === 0 });
+    }
+    return out;
+  }, []);
+  const orbits: [number, number, number][] = [[0, 0, 0], [Math.PI / 3, 0, Math.PI / 4], [-Math.PI / 3, 0, -Math.PI / 4]];
+
+  useFrame((state, dt) => {
+    const s = motion.speed;
+    const t = state.clock.elapsedTime * s;
+    cluster.current.rotation.y += dt * 0.9 * s;
+    cluster.current.rotation.x += dt * 0.5 * s;
+    cluster.current.scale.setScalar(1 + 0.07 * Math.sin(t * 3));
+    electrons.current.forEach((e, k) => {
+      const a = t * 2.2 + k * 2.1;
+      e.position.set(Math.cos(a) * 0.42, Math.sin(a) * 0.42, 0);
+    });
+  });
+
+  return (
+    <group>
+      <group ref={cluster}>
+        {particles.map((q, i) => (
+          <mesh key={i} position={q.p}>
+            <sphereGeometry args={[0.078, 16, 16]} />
+            <meshBasicMaterial color={q.proton ? "#d9893c" : "#8e9be0"} />
+          </mesh>
+        ))}
+      </group>
+      <sprite scale={0.7}>
+        <spriteMaterial map={glow} color="#ffd9a0" opacity={0.2} {...additive} />
+      </sprite>
+      {orbits.map((rot, k) => (
+        <group key={k} rotation={rot}>
+          <mesh>
+            <torusGeometry args={[0.42, 0.004, 6, 96]} />
+            <meshBasicMaterial color={SIGNAL} opacity={0.35} {...additive} />
+          </mesh>
+          <sprite ref={(el) => { if (el) electrons.current[k] = el; }} scale={0.16}>
+            <spriteMaterial map={glow} color={SIGNAL} {...additive} />
+          </sprite>
+        </group>
+      ))}
+    </group>
+  );
+}
+
 function Lattice({ target, motion, pulseCount }: { target: [number, number, number]; motion: Motion; pulseCount: number }) {
   const glow = useMemo(getGlow, []);
   const { verts, edges, neighbors } = useMemo(buildGraph, []);
@@ -359,6 +418,7 @@ function Lattice({ target, motion, pulseCount }: { target: [number, number, numb
       <sprite ref={coreGlow} scale={2.4}>
         <spriteMaterial map={glow} color={AMBER} opacity={0.45} {...additive} />
       </sprite>
+      <Nucleus motion={motion} />
 
       {/* scanner */}
       <mesh ref={ring} rotation={[Math.PI / 2, 0, 0]}>
