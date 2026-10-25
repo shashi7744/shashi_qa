@@ -126,7 +126,7 @@ function Orbit({ radius, tilt, speed, color, sats, motion, follow = false }: {
   );
 }
 
-/* A small atom at the very centre: a tight nucleus of protons (amber) and neutrons (pale blue),
+/* A small atom at the very centre: a tight, bright white nucleus,
    gently pulsing, with three electrons on tilted orbits. Sits inside the violet core shape. */
 function Nucleus({ motion }: { motion: Motion }) {
   const glow = useMemo(getGlow, []);
@@ -162,13 +162,13 @@ function Nucleus({ motion }: { motion: Motion }) {
       <group ref={cluster}>
         {particles.map((q, i) => (
           <mesh key={i} position={q.p}>
-            <sphereGeometry args={[0.078, 16, 16]} />
-            <meshBasicMaterial color={q.proton ? "#d9893c" : "#8e9be0"} />
+            <sphereGeometry args={[0.072, 16, 16]} />
+            <meshBasicMaterial color={q.proton ? "#ffffff" : "#e6ecff"} toneMapped={false} />
           </mesh>
         ))}
       </group>
-      <sprite scale={0.7}>
-        <spriteMaterial map={glow} color="#ffd9a0" opacity={0.2} {...additive} />
+      <sprite scale={0.85}>
+        <spriteMaterial map={glow} color="#ffffff" opacity={0.55} {...additive} />
       </sprite>
       {orbits.map((rot, k) => (
         <group key={k} rotation={rot}>
