@@ -5,6 +5,8 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import SceneLoader from "./components/SceneLoader";
 import MobileCta from "./components/MobileCta";
+import RevealFallback from "./components/RevealFallback";
+import SmoothScroll from "./components/SmoothScroll";
 import { services, site } from "./data";
 
 // Self-hosted by Next.js: no request to Google Fonts, no layout shift while fonts load
@@ -81,6 +83,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="main">{children}</main>
         <Footer />
         <MobileCta />
+        <SmoothScroll />
+        <RevealFallback />
       </body>
     </html>
   );
