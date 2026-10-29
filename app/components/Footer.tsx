@@ -10,7 +10,7 @@ export default function Footer() {
             <span className="brand-mark" />
             {site.brand}
           </span>
-          <p className="muted">Websites, CRMs, AI video, Instagram and software testing for businesses in the Netherlands and Luxembourg.</p>
+          <p className="muted">Websites, CRMs, AI video, Instagram and software testing for businesses across Europe.</p>
         </div>
         <div className="stack-sm">
           <span className="label">Pages</span>
@@ -21,6 +21,7 @@ export default function Footer() {
         <div className="stack-sm">
           <span className="label">Contact</span>
           <span className="selectable">{site.email}</span>
+          <a href={site.whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp {site.phone} ↗</a>
           <a href={site.github} target="_blank" rel="noopener noreferrer">GitHub ↗</a>
           <span className="muted">{site.serving}</span>
           <span className="muted">{site.hours}</span>

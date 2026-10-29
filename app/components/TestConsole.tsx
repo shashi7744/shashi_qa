@@ -2,15 +2,20 @@
 
 import { useEffect, useState } from "react";
 
+// An example project run: one client, every service, realistic timings
 const lines: { s: "pass" | "fail" | "info"; text: string; ms?: string }[] = [
-  { s: "info", text: "$ run suite --app checkout-web --devices all" },
-  { s: "pass", text: "login with email + OTP", ms: "212ms" },
-  { s: "pass", text: "add item to cart", ms: "340ms" },
-  { s: "pass", text: "apply coupon SAVE10", ms: "118ms" },
-  { s: "fail", text: "pay button on iPhone Safari" },
-  { s: "info", text: "  → BUG-014 · severity: high · repro attached" },
-  { s: "pass", text: "order confirmation email", ms: "96ms" },
-  { s: "info", text: "4 passed · 1 failed · report sent to team" },
+  { s: "info", text: '$ ship --client "cafe-lumiere" --country fr' },
+  { s: "info", text: "website · EN + FR" },
+  { s: "pass", text: "8 pages · booking · cookie banner", ms: "week 3" },
+  { s: "pass", text: "64 tests passed on 8 devices", ms: "week 4" },
+  { s: "info", text: "crm" },
+  { s: "pass", text: "reservations + WhatsApp leads synced", ms: "week 6" },
+  { s: "info", text: "ai video" },
+  { s: "pass", text: "30 s ad · French voice-over", ms: "day 4" },
+  { s: "info", text: "instagram" },
+  { s: "pass", text: "12 reels delivered for November", ms: "week 1" },
+  { s: "fail", text: "reel #7 waiting for your approval" },
+  { s: "info", text: "live · customers can find you now" },
 ];
 
 export default function TestConsole() {
@@ -32,10 +37,10 @@ export default function TestConsole() {
   }, []);
 
   return (
-    <div className="console" aria-label="Example test run">
+    <div className="console" aria-label="Example project from build to launch">
       <div className="console-bar">
         <i /><i /><i />
-        <span>qa-runner · checkout-web</span>
+        <span>project · cafe-lumiere</span>
       </div>
       <pre>
         {lines.slice(0, count).map((l, i) => (

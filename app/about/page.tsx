@@ -5,7 +5,7 @@ import { skills } from "../data";
 export const metadata: Metadata = {
   title: "About",
   alternates: { canonical: "/about" },
-  description: "Shashi Gautam: developer, software tester and AI video creator working with clients in the Netherlands and Luxembourg.",
+  description: "Shashi Gautam: developer, software tester and AI video creator working remotely with businesses across Europe.",
 };
 
 export default function About() {
@@ -20,20 +20,17 @@ export default function About() {
         <div className="split">
           <div className="stack">
             <p className="lead">
-              Before software, I spent six years in field sales, talking to customers every day and learning what makes
-              them trust a product or walk away.
+              I&apos;m Shashi, and Shashi Studio is where I build websites and CRMs, create AI videos, reels and posts,
+              and test software for small businesses.
             </p>
             <p className="muted">
-              Today I work in application support and testing, and I build websites, CRMs and AI content for
-              businesses. Because I test for a living, everything I make is checked on real phones and browsers before
-              you see it.
+              Everything I make is tested on real phones and browsers before you see it. That&apos;s the difference:
+              you don&apos;t get a site that looks good in a demo and breaks on your customer&apos;s iPhone.
             </p>
             <p className="muted">
-              I&apos;m based in Mumbai and work remotely with clients in the Netherlands and Luxembourg, during your
-              working hours. You get European quality at a lower price, and one person who knows your project.
-            </p>
-            <p className="muted">
-              I hold a B.Sc. in Information Technology from Viva College, Mumbai, and work in English, Hindi and Marathi.
+              I work remotely with businesses across Europe, during your working hours (CET). You get European quality
+              at a lower price, content in your language, and one person who knows your project from first call to
+              launch.
             </p>
             <Link href="/contact" className="btn btn-primary fit">Work with me →</Link>
           </div>
@@ -45,9 +42,9 @@ export default function About() {
             </div>
             <dl className="facts">
               <div><dt>Based in</dt><dd>Mumbai, India</dd></div>
-              <div><dt>Works with</dt><dd>Netherlands, Luxembourg, remote</dd></div>
+              <div><dt>Works with</dt><dd>Businesses across Europe, remote</dd></div>
               <div><dt>Hours</dt><dd>09:00–17:00 CET</dd></div>
-              <div><dt>Languages</dt><dd>English, Hindi, Marathi</dd></div>
+              <div><dt>Replies</dt><dd>Within 24 hours</dd></div>
             </dl>
           </div>
         </div>

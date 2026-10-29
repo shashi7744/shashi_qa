@@ -9,9 +9,9 @@ const Bar = ({ label }: { label: string }) => (
 function Website() {
   return (
     <div className="specimen" aria-hidden="true">
-      <Bar label="bakkerijdezon.nl" />
+      <Bar label="cafe-lumiere.fr · EN | FR | DE" />
       <div className="spec-site">
-        <div className="hero-m"><b>Vers brood, elke ochtend.</b><i /><em>Bestel online</em></div>
+        <div className="hero-m"><b>Fresh pastries, every morning.</b><i /><em>Book a table</em></div>
         <div className="row3"><div /><div /><div /></div>
         <div className="vitals"><span>Performance <b>98</b></span><span>SEO <b>100</b></span><span>Mobile <b>✓</b></span><span>GDPR <b>✓</b></span></div>
       </div>
@@ -22,9 +22,9 @@ function Website() {
 function Crm() {
   const rows: [string, string, "new" | "fol" | "won", string, string][] = [
     ["Salon Lotte", "Amsterdam", "new", "New", "€1,200"],
-    ["Café Moselle", "Luxembourg", "fol", "Follow up", "€2,450"],
-    ["FietsFix BV", "Rotterdam", "won", "Won", "€3,900"],
-    ["Studio Noor", "Den Haag", "new", "New", "€860"],
+    ["Café Lumière", "Lyon", "fol", "Follow up", "€2,450"],
+    ["Velo Werk GmbH", "Munich", "won", "Won", "€3,900"],
+    ["Studio Sol", "Barcelona", "new", "New", "€860"],
   ];
   return (
     <div className="specimen" aria-hidden="true">
@@ -62,7 +62,7 @@ function AiVideo() {
               <div>{clips.map(([l, w, c], i) => <i key={i} style={{ left: `${l}%`, width: `${w}%`, background: c }} />)}</div>
             </div>
           ))}
-          <div className="langs">{["NL", "FR", "DE", "EN", "LB"].map((l) => <span key={l}>{l}</span>)}</div>
+          <div className="langs">{["EN", "DE", "FR", "NL", "ES", "IT", "+5"].map((l) => <span key={l}>{l}</span>)}</div>
         </div>
       </div>
     </div>
@@ -70,20 +70,31 @@ function AiVideo() {
 }
 
 function Instagram() {
-  const tiles: [string, boolean][] = [
-    ["linear-gradient(160deg,#FF3B5C,#7A1F5C)", true], ["linear-gradient(170deg,#E8862B,#5A2410)", false],
-    ["linear-gradient(150deg,#16A37B,#0E3B47)", true], ["linear-gradient(170deg,#2D5BFF,#13152A)", false],
-    ["linear-gradient(160deg,#B05BFF,#2A1450)", true], ["linear-gradient(160deg,#2B8CB0,#0F2A3A)", false],
+  // [background, is a reel, hook text, views or kind]
+  const tiles: [string, boolean, string, string][] = [
+    ["radial-gradient(circle at 30% 20%,#FFB36B,transparent 55%),linear-gradient(160deg,#FF3B5C,#7A1F5C)", true, "3 croissants, 1 secret", "▶ 12.4k"],
+    ["linear-gradient(170deg,#E8862B,#5A2410)", false, "November menu", "carousel · 6"],
+    ["radial-gradient(circle at 40% 70%,#FFE27A,transparent 50%),linear-gradient(150deg,#16A37B,#0E3B47)", true, "Behind the counter", "▶ 8.1k"],
+    ["linear-gradient(170deg,#2D5BFF,#13152A)", false, "Meet our baker", "post"],
+    ["radial-gradient(circle at 60% 20%,#FFD1E8,transparent 50%),linear-gradient(160deg,#B05BFF,#2A1450)", true, "Weekend brunch in 15 s", "▶ 21.7k"],
+    ["linear-gradient(160deg,#2B8CB0,#0F2A3A)", false, "Swipe for the recipe", "carousel · 5"],
   ];
   return (
     <div className="specimen" aria-hidden="true">
-      <Bar label="@bakkerijdezon · November plan" />
+      <Bar label="@cafelumiere · November plan" />
       <div className="spec-ig">
         <div className="prof">
           <div className="av"><i /></div>
           <div className="nums"><span><b>142</b>posts</span><span><b>8.4k</b>followers</span><span><b>+21%</b>reach</span></div>
         </div>
-        <div className="gridp">{tiles.map(([bg, reel], i) => <i key={i} className={reel ? "r" : ""} style={{ background: bg }} />)}</div>
+        <div className="gridp">
+          {tiles.map(([bg, reel, hook, meta], i) => (
+            <div key={i} className={`igp ${reel ? "r" : ""}`} style={{ background: bg }}>
+              <span className="igp-hook">{hook}</span>
+              <span className="igp-meta">{meta}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

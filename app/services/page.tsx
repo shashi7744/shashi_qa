@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: "Services & Pricing",
   alternates: { canonical: "/services" },
   description:
-    "Websites, CRMs, AI video, Instagram content and software testing for businesses in the Netherlands and Luxembourg. Fixed prices in EUR.",
+    "Websites, CRMs, AI video, Instagram content and software testing for businesses across Europe. Fixed prices in EUR, delivered remotely.",
 };
 
 /* the 3D scene fades to each section's colour while you scroll (see Scene.tsx) */
@@ -38,7 +38,7 @@ const servicesJsonLd = {
         name: `${s.label}: ${p.name}`,
         description: s.lead,
         provider: { "@id": `${site.url}/#business` },
-        areaServed: ["Netherlands", "Luxembourg"],
+        areaServed: { "@type": "Continent", name: "Europe" },
       },
     })),
   })),
@@ -58,7 +58,7 @@ export default function Services() {
         <span className="eyebrow">Services</span>
         <h1>Build it. Test it. Grow it.</h1>
         <p className="lead">
-          Five services for small businesses in the Netherlands and Luxembourg, each with fixed prices in EUR. Pick one,
+          Five services for small businesses across Europe, each with fixed prices in EUR. Pick one,
           or combine them: a website, the CRM behind it, and the videos and reels that bring customers in.
         </p>
         <nav className="svc-index" aria-label="Services on this page">
@@ -114,7 +114,10 @@ export default function Services() {
                 </div>
               ))}
             </div>
-            <p className="muted small svc-local">For comparison: {s.local} Prices in EUR, excl. VAT.</p>
+            <div className="svc-meta">
+              <span className="svc-time"><b>Delivery</b> {s.time}</span>
+              <span className="muted small">For comparison: {s.local} Prices in EUR, excl. VAT.</span>
+            </div>
 
             {s.key === "qa" && (
               <>

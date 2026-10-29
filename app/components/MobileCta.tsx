@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { site } from "../data";
 
 /** Quote button that stays at the bottom of the screen on phones. */
 export default function MobileCta() {
@@ -10,7 +11,7 @@ export default function MobileCta() {
   return (
     <div className="mobile-cta">
       <Link href="/contact" className="btn btn-primary">Get a fixed quote →</Link>
-      <Link href="/services" className="btn btn-ghost">Prices</Link>
+      <a href={site.whatsapp} target="_blank" rel="noopener noreferrer" className="btn btn-ghost">WhatsApp</a>
     </div>
   );
 }

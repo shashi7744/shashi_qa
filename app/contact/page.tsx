@@ -29,6 +29,14 @@ export default function Contact() {
               <span className="selectable strong">{site.email}</span>
             </div>
             <div className="contact-item">
+              <span className="label">Phone & WhatsApp</span>
+              <a href={site.phoneHref} className="strong">{site.phone}</a>
+              <div className="row contact-actions">
+                <a href={site.whatsapp} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm">Chat on WhatsApp ↗</a>
+                <a href={site.phoneHref} className="btn btn-ghost btn-sm">Call</a>
+              </div>
+            </div>
+            <div className="contact-item">
               <span className="label">GitHub</span>
               <a href={site.github} target="_blank" rel="noopener noreferrer" className="link">github.com/shashi7744 ↗</a>
             </div>

@@ -346,6 +346,10 @@ main h1, main h2, main .lead { text-shadow: 0 2px 18px rgba(10, 13, 28, 0.85); }
 .svc .badge { background: var(--acc); }
 .svc .pricing { margin-bottom: 0; }
 .svc-local { margin-top: -16px; }
+.contact-actions { gap: 10px; margin-top: 6px; }
+.svc-meta { display: flex; flex-direction: column; gap: 6px; margin-top: -12px; }
+.svc-time { font-size: 0.95rem; }
+.svc-time b { font: 600 0.72rem var(--f-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--acc); margin-right: 8px; }
 .svc-extra { margin-top: 12px; }
 .svc-h3 { font: 800 clamp(1.4rem, 2.6vw, 1.9rem)/1.15 var(--f-display); margin: 0; }
 .svc-preview { min-width: 0; }
@@ -400,8 +404,14 @@ main h1, main h2, main .lead { text-shadow: 0 2px 18px rgba(10, 13, 28, 0.85); }
 .spec-ig .nums { display: flex; gap: 18px; font: 500 0.78rem var(--f-mono); color: var(--muted); }
 .spec-ig .nums b { display: block; color: var(--fg); font: 700 0.95rem var(--f-display); }
 .spec-ig .gridp { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
-.spec-ig .gridp i { aspect-ratio: 4 / 5; border-radius: 4px; position: relative; }
-.spec-ig .gridp i.r::after { content: "▶"; position: absolute; top: 5px; right: 6px; font-size: 9px; color: #fff; font-style: normal; }
+.spec-ig .igp {
+  aspect-ratio: 4 / 5; border-radius: 6px; position: relative; overflow: hidden; color: #fff;
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 3px; padding: 8px;
+}
+.spec-ig .igp::before { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 40%, rgba(0, 0, 0, 0.55)); }
+.spec-ig .igp.r::after { content: "▶"; position: absolute; top: 6px; right: 7px; font-size: 10px; }
+.spec-ig .igp-hook { position: relative; font: 700 0.8rem/1.15 var(--f-display); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5); }
+.spec-ig .igp-meta { position: relative; font: 500 0.62rem var(--f-mono); opacity: 0.85; }
 .spec-run { margin: 0; padding: 18px; font: 0.84rem/1.75 var(--f-mono); overflow-x: auto; white-space: pre; }
 .spec-run .ok { color: var(--pass); }
 .spec-run .bad { color: var(--bug); }

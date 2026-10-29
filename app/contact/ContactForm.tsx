@@ -59,11 +59,11 @@ export default function ContactForm() {
           <input id="name" name="name" required placeholder="Jane Doe" />
         </label>
         <label htmlFor="email">Work email
-          <input id="email" name="email" type="email" required placeholder="jane@yourbusiness.nl" />
+          <input id="email" name="email" type="email" required placeholder="jane@yourbusiness.com" />
         </label>
       </div>
       <label htmlFor="url">Your website or Instagram (if you have one)
-        <input id="url" name="url" type="text" placeholder="yourbusiness.nl or @yourbusiness" defaultValue={initialUrl} />
+        <input id="url" name="url" type="text" placeholder="yourbusiness.com or @yourbusiness" defaultValue={initialUrl} />
       </label>
       <label htmlFor="plan">I'm interested in
         <select id="plan" name="plan" defaultValue={initialPlan}>

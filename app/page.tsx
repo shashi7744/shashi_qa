@@ -9,7 +9,7 @@ export default function Home() {
       {/* Hero */}
       <section className="container hero">
         <div className="hero-copy">
-          <span className="eyebrow"><span className="dot" /> Serving the Netherlands & Luxembourg · Replies within 24 h</span>
+          <span className="eyebrow"><span className="dot" /> Serving businesses across Europe · Replies within 24 h</span>
           <h1>
             Build it. Test it. <em>Grow</em> it on reels.
           </h1>
@@ -34,21 +34,26 @@ export default function Home() {
       {/* Stats */}
       <section className="container stats">
         <div className="stat"><strong>5</strong><span>Services, from website to reels</span></div>
-        <div className="stat"><strong>~1 week</strong><span>From first call to a live starter site</span></div>
+        <div className="stat"><strong>3–5 days</strong><span>To your first AI video or posts</span></div>
         <div className="stat"><strong>3</strong><span>Live apps built and tested</span></div>
         <div className="stat"><strong>Since 2019</strong><span>Client-facing, in sales and app support</span></div>
       </section>
 
-      {/* Live test run */}
+      {/* One partner, whole project */}
       <section className="container section">
         <div className="split">
           <div className="stack">
-            <span className="eyebrow">Live test run</span>
-            <h2>Every flow tested, every bug reported.</h2>
+            <span className="eyebrow">One partner, start to finish</span>
+            <h2>Built, tested and promoted by one person.</h2>
             <p className="lead">
-              I run your key user journeys on real devices and browsers. When something breaks, you get a bug report
-              with steps, severity and a screen recording, ready for your developers to fix.
+              No handovers between agencies. I build your website or CRM, test it on real devices before you see it,
+              and create the videos and posts that bring customers to it. You get one plan, one price and weekly
+              updates.
             </p>
+            <ul className="checks">
+              <li>Everything tested on iPhone, Android and desktop before launch</li>
+              <li>Clear progress updates every week, in your working hours</li>
+            </ul>
           </div>
           <TiltCard className="hero-visual">
             <TestConsole />
@@ -70,7 +75,7 @@ export default function Home() {
             <Link key={s.key} href={`/services#${s.id}`} className={`card svc-card accent-${s.accent}`}>
               <span className="mono">{s.num}</span>
               <h3>{s.label}</h3>
-              <p className="muted small">{s.lead.split(". ")[0]}.</p>
+              <p className="muted small">{s.short}</p>
               <span className="from">{s.from}</span>
             </Link>
           ))}
@@ -82,7 +87,8 @@ export default function Home() {
       <section className="container section">
         <div className="section-head">
           <span className="eyebrow">How it works</span>
-          <h2>From first call to launch in about a week.</h2>
+          <h2>From first call to launch.</h2>
+          <p className="lead">AI videos and posts in days. Websites in weeks. CRMs in 1–3 months. Always a fixed price.</p>
         </div>
         <ol className="process">
           {processSteps.map((s, i) => (

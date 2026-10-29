@@ -13,25 +13,25 @@ const body = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], 
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono", display: "swap" });
 
 const description =
-  "Websites, CRMs, AI video ads, Instagram reels and software testing for small businesses in the Netherlands and Luxembourg. Fixed prices in EUR.";
+  "Websites, CRMs, AI video ads, Instagram reels and software testing for small businesses across Europe. Fixed prices in EUR, delivered remotely.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: {
-    default: "Shashi.QA | Websites, CRM, AI video, Instagram & Testing",
-    template: "%s | Shashi.QA",
+    default: "Shashi Studio | Websites, CRM, AI video, Instagram & Testing",
+    template: "%s | Shashi Studio",
   },
   description,
   keywords: [
-    "website laten maken", "website laten maken kosten", "website Luxembourg", "CRM for small business",
-    "AI video ads", "Instagram reels", "social media management", "software testing", "website testen",
-    "freelance web developer Netherlands",
+    "website for small business Europe", "freelance web developer Europe", "CRM for small business",
+    "AI video ads", "AI video agency Europe", "Instagram reels management", "social media management",
+    "software testing services", "website testing", "website laten maken", "Webseite erstellen lassen",
   ],
   authors: [{ name: site.name, url: site.url }],
   alternates: { canonical: "/" },
   openGraph: {
-    title: "Shashi.QA | Build it. Test it. Grow it on reels.",
-    description: "Websites, CRMs, AI video, Instagram and testing for businesses in the Netherlands and Luxembourg. Fixed prices in EUR.",
+    title: "Shashi Studio | Build it. Test it. Grow it on reels.",
+    description: "Websites, CRMs, AI video, Instagram and testing for businesses across Europe. Fixed prices in EUR.",
     siteName: site.brand,
     locale: "en_GB",
     type: "website",
@@ -58,10 +58,8 @@ const businessJsonLd = {
   description,
   priceRange: "€€",
   currenciesAccepted: "EUR",
-  areaServed: [
-    { "@type": "Country", name: "Netherlands" },
-    { "@type": "Country", name: "Luxembourg" },
-  ],
+  telephone: site.phone.replace(/\s/g, ""),
+  areaServed: { "@type": "Continent", name: "Europe" },
   availableLanguage: ["English"],
   founder: {
     "@type": "Person",

@@ -43,7 +43,7 @@ ${message}`;
         service: "gmail",
         auth: { user: gmailUser, pass: gmailPass.replace(/\s+/g, "") },
       });
-      await transporter.sendMail({ from: `"Shashi.QA Website" <${gmailUser}>`, to: TO, replyTo: email, subject, text });
+      await transporter.sendMail({ from: `"Shashi Studio Website" <${gmailUser}>`, to: TO, replyTo: email, subject, text });
       return NextResponse.json({ ok: true });
     } catch (e) {
       console.error("[contact form] Gmail send failed:", e instanceof Error ? e.message : e);
@@ -69,7 +69,7 @@ ${message}`;
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: "Shashi.QA Website <onboarding@resend.dev>",
+      from: "Shashi Studio Website <onboarding@resend.dev>",
       to: [TO],
       reply_to: email,
       subject,

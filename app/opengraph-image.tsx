@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { services } from "./data";
 
 /* The preview image shown when the site is shared on WhatsApp, LinkedIn, Facebook or X */
-export const alt = "Shashi.QA: websites, CRM, AI video, Instagram and testing for the Netherlands and Luxembourg";
+export const alt = "Shashi Studio: websites, CRM, AI video, Instagram and testing for businesses across Europe";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -21,14 +21,14 @@ export default function OpenGraphImage() {
       >
         <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 34, fontWeight: 800 }}>
           <div style={{ width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg,#3ee0cf,#f2a649)", transform: "rotate(45deg)" }} />
-          Shashi.QA
+          Shashi Studio
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <div style={{ fontSize: 76, fontWeight: 800, lineHeight: 1.05, letterSpacing: -2 }}>Build it. Test it.</div>
           <div style={{ display: "flex", fontSize: 76, fontWeight: 800, lineHeight: 1.05, letterSpacing: -2 }}>
             <span style={{ color: "#3ee0cf" }}>Grow</span>&nbsp;it on reels.
           </div>
-          <div style={{ fontSize: 30, color: "#9aa1c8" }}>For small businesses in the Netherlands &amp; Luxembourg · Fixed prices in EUR</div>
+          <div style={{ fontSize: 30, color: "#9aa1c8" }}>For small businesses across Europe · Fixed prices in EUR</div>
         </div>
         <div style={{ display: "flex", gap: 14 }}>
           {services.map((s) => (

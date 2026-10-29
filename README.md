@@ -1,4 +1,4 @@
-# Shashi.QA — Software testing portfolio
+# Shashi Studio — Software testing portfolio
 
 Next.js 15 + React Three Fiber site with a 3D background.
 Pages: Home, Services (pricing), Projects, About, Contact.
