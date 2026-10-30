@@ -45,7 +45,7 @@ export interface BrowserFindings {
   a11yFailures: string[];
 }
 
-const UA = "ShashiQA-WebsiteCheck/1.0 (+https://shashi.qa/check)";
+const UA = "ShashiStudio-WebsiteCheck/1.0 (+https://www.shashistudio.online/check)";
 
 /* ---------- URL safety (only public websites) ---------- */
 

@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       runCheck(url),
       findContacts(url, hnUser).catch((): Contacts => ({ emails: [], socials: [] })),
     ]);
-    const me = { name: site.name, email: site.email, site: process.env.SITE_URL || "https://shashiqa.vercel.app" };
+    const me = { name: site.name, email: site.email, site: site.url };
     const draft = await draftMessage(report, product || report.pageTitle, me, contacts.business?.flow);
     return NextResponse.json({
       url: report.finalUrl,

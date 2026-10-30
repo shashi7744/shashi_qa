@@ -52,7 +52,7 @@ export async function findLaunches(limit = 40): Promise<Launch[]> {
   try {
     res = await fetch(
       `https://hn.algolia.com/api/v1/search_by_date?tags=show_hn&hitsPerPage=${Math.min(limit * 2, 100)}`,
-      { headers: { "User-Agent": "ShashiQA-LeadAgent/1.0" } }
+      { headers: { "User-Agent": "ShashiStudio-LeadAgent/1.0" } }
     );
   } catch {
     throw new Error("Couldn't reach Hacker News right now. Try again in a minute, or paste websites instead.");
@@ -392,7 +392,7 @@ ${BUG_PLACEHOLDER}
 I'm a software tester and help startups catch issues like this before their users do. Happy to test your ${flow} for free and send you a clear bug report with steps and screenshots.
 ${extras ? `\nTwo smaller things my automated scan picked up, in case they're useful:\n${extras}\n` : ""}
 ${me.name}
-Software Tester
+Shashi Studio · websites, AI video & testing
 ${me.email} · ${me.site}`,
     aiWritten: false,
   };
@@ -416,7 +416,7 @@ Write an email that:
 - then offers, with no pressure, a free test of their ${flow} with a clear bug report,
 - optionally mentions at most 2 of the scan issues in plain words as a short "smaller things" list,
 - is under 120 words, friendly, no hype, no fake compliments, no emojis, and does not invent features or bugs,
-- signs off with exactly these lines: "${me.name}", "Software Tester", "${me.email} · ${me.site}".
+- signs off with exactly these lines: "${me.name}", "Shashi Studio · websites, AI video & testing", "${me.email} · ${me.site}".
 
 Reply with ONLY JSON: {"subject": "...", "body": "..."}`;
 
