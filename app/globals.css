@@ -82,7 +82,8 @@ h1 em::after {
 .fit { align-self: flex-start; }
 
 /* 3D background */
-.scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+.scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; animation: scene-in 1.2s ease both; }
+@keyframes scene-in { from { opacity: 0; } to { opacity: 1; } }
 .scene canvas { width: 100% !important; height: 100% !important; }
 @media (max-width: 899px) { .scene canvas { opacity: 0.55; } }
 main h1, main h2, main .lead { text-shadow: 0 2px 18px rgba(10, 13, 28, 0.85); }

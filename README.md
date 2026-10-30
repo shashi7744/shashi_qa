@@ -42,3 +42,17 @@ The daily limit is kept in server memory, so it resets when Vercel restarts the 
 ## Go live (Vercel)
 1. Push this folder to a GitHub repo.
 2. On vercel.com → Add New Project → import the repo → Deploy.
+
+## "Website by Shashi Studio" badge (for client sites)
+Add this to the footer of every client site you build. Use the brand name as the link text, never keywords.
+
+Dark footer:
+```html
+<a href="https://www.shashistudio.online/?ref=badge" title="Website by Shashi Studio">
+  <img src="https://www.shashistudio.online/badge-dark.svg" alt="Website by Shashi Studio" width="188" height="32" loading="lazy">
+</a>
+```
+Light footer: use `badge-light.svg` instead. Text-only version:
+```html
+Website by <a href="https://www.shashistudio.online/?ref=badge">Shashi Studio</a>
+```
