@@ -34,7 +34,7 @@ export default function Blog() {
             );
           })}
         </div>
-        <p className="muted small">Last updated {fmt(posts[0].date)}</p>
+        <p className="muted small">Last updated {fmt(posts.map((p) => p.date).sort().at(-1)!)}</p>
       </section>
     </>
   );

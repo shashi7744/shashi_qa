@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import LangSuggest from "../../components/LangSuggest";
+import LangSwitch from "../../components/LangSwitch";
 import PlanCards from "../../components/PlanCards";
+import { languageAlternates } from "../../i18n/locales";
 import { SERVICE_PREVIEW } from "../../components/ServicePreview";
 import TiltCard from "../../components/TiltCard";
 import { processSteps, services, site } from "../../data";
@@ -24,7 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: d.seoTitle,
     description: d.seoDescription,
-    alternates: { canonical: `/services/${s.id}` },
+    alternates: { canonical: `/services/${s.id}`, languages: languageAlternates(`/services/${s.id}`) },
     openGraph: { title: `${d.seoTitle} | ${site.brand}`, description: d.seoDescription },
   };
 }
@@ -81,6 +84,8 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
         <nav className="crumbs mono small" aria-label="Breadcrumb">
           <Link href="/">Home</Link> / <Link href="/services">Services</Link> / <span>{s.label}</span>
         </nav>
+        <LangSwitch path={`/services/${s.id}`} current="en" />
+        <LangSuggest path={`/services/${s.id}`} />
         <span className="eyebrow svc-eyebrow">{s.num} · {s.label} · {s.from}</span>
         <h1>{s.title}</h1>
         <p className="lead">{s.lead}</p>

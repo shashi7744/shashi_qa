@@ -2,14 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import BugReport from "../components/BugReport";
 import { SERVICE_PREVIEW } from "../components/ServicePreview";
+import LangSuggest from "../components/LangSuggest";
+import LangSwitch from "../components/LangSwitch";
 import PlanCards from "../components/PlanCards";
+import { languageAlternates } from "../i18n/locales";
 import ServiceNav from "../components/ServiceNav";
 import TiltCard from "../components/TiltCard";
 import { faqs, services, site, testTypes } from "../data";
 
 export const metadata: Metadata = {
   title: "Services & Pricing",
-  alternates: { canonical: "/services" },
+  alternates: { canonical: "/services", languages: languageAlternates("/services") },
   description:
     "Websites, CRMs, AI video, Instagram content and software testing for businesses across Europe. Fixed prices in EUR, delivered remotely.",
 };
@@ -56,6 +59,8 @@ export default function Services() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(servicesJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
       <section className="container page-head">
+        <LangSwitch path="/services" current="en" />
+        <LangSuggest path="/services" />
         <span className="eyebrow">Services</span>
         <h1>Build it. Test it. Grow it.</h1>
         <p className="lead">

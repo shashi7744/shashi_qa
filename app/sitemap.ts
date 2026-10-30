@@ -1,20 +1,32 @@
 import type { MetadataRoute } from "next";
 import { posts } from "./blog/posts";
 import { services, site } from "./data";
+import { locales } from "./i18n/locales";
 
-/** /sitemap.xml: every public page, so search engines find them all. */
+type Entry = MetadataRoute.Sitemap[number];
+
+/** /sitemap.xml: every public page. Service pages also list their German, French and Dutch versions. */
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-  const page = (path: string, priority: number, changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"], lastModified = now) => ({
-    url: `${site.url}${path}`,
+  const abs = (p: string) => `${site.url}${p}`;
+  const page = (path: string, priority: number, changeFrequency: Entry["changeFrequency"], lastModified = now): Entry => ({
+    url: abs(path),
     lastModified,
     changeFrequency,
     priority,
   });
+  // the English page and its translations all point at each other
+  const translated = (path: string, priority: number): Entry[] => {
+    const languages = { en: abs(path), ...Object.fromEntries(locales.map((l) => [l, abs(`/${l}${path}`)])) };
+    return [path, ...locales.map((l) => `/${l}${path}`)].map((p) => ({
+      ...page(p, p === path ? priority : priority - 0.1, "monthly"),
+      alternates: { languages },
+    }));
+  };
   return [
     page("", 1, "weekly"),
-    page("/services", 0.9, "weekly"),
-    ...services.map((s) => page(`/services/${s.id}`, 0.9, "monthly")),
+    ...translated("/services", 0.9),
+    ...services.flatMap((s) => translated(`/services/${s.id}`, 0.9)),
     page("/blog", 0.7, "weekly"),
     ...posts.map((p) => page(`/blog/${p.slug}`, 0.7, "monthly", new Date(p.date))),
     page("/check", 0.8, "monthly"),

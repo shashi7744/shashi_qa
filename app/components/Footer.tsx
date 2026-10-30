@@ -35,6 +35,11 @@ export default function Footer() {
       </div>
       <div className="container footer-bottom">
         <span>© {new Date().getFullYear()} {site.name} · Prices in EUR excl. VAT</span>
+        <span className="footer-langs">
+          <Link href="/de/services" hrefLang="de" lang="de">Deutsch</Link> ·{" "}
+          <Link href="/fr/services" hrefLang="fr" lang="fr">Français</Link> ·{" "}
+          <Link href="/nl/services" hrefLang="nl" lang="nl">Nederlands</Link>
+        </span>
         <span className="mono">status: all checks passing ✓</span>
       </div>
     </footer>
