@@ -1,6 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { site } from "@/app/data";
+import {
+  categories, categoryByKey, countries, countryByCode, phoneForWhatsApp, ruleText, whatsappRule, type DraftLang,
+} from "@/lib/europe";
+import { BUG_MARKER, bugFirstDraft, noWebsiteDraft } from "@/lib/outreachTemplates";
+import { findPlaces } from "@/lib/places";
+
+const me = { name: site.name, email: site.email, site: site.url };
+const langLabel: Record<DraftLang, string> = { en: "English", de: "Deutsch", fr: "Français", nl: "Nederlands" };
 
 type LeadStatus = "queued" | "checking" | "ready" | "contacted" | "skipped" | "error";
 
@@ -26,6 +35,15 @@ interface Lead {
   checkedAt?: string;
   contactedAt?: string;
   followedUpAt?: string;
+  // local businesses from the map search
+  country?: string;
+  city?: string;
+  category?: string;
+  phone?: string;
+  whatsapp?: string;
+  noWebsite?: boolean; // url is then the OpenStreetMap page
+  lang?: DraftLang;
+  draftInput?: { product: string; host: string; flow: string };
 }
 
 const STORE = "shashiqa-leads-v1";
@@ -42,6 +60,8 @@ const hostOf = (url: string) => {
     return url;
   }
 };
+/** Websites are de-duplicated by domain; businesses without a website by their map entry. */
+const leadKey = (l: { url: string; noWebsite?: boolean }) => (l.noWebsite ? l.url : hostOf(l.url));
 const age = (iso?: string) => (iso ? Date.now() - new Date(iso).getTime() : 0);
 const needsFollowUp = (l: Lead) => l.status === "contacted" && !l.followedUpAt && age(l.contactedAt) >= 5 * DAY;
 
@@ -97,11 +117,12 @@ export default function LeadAgent() {
   const [skipSolid, setSkipSolid] = useState(true);
   const [openUrl, setOpenUrl] = useState<string | null>(null);
   const [warnUrl, setWarnUrl] = useState<string | null>(null);
+  const [local, setLocal] = useState({ country: "NL", city: "", category: "cafe", mode: "none" as "none" | "website" });
 
   useEffect(() => {
     const { keep, gone } = prune(load<Lead[]>(STORE, []));
     setLeads(keep);
-    setSeen([...new Set([...load<string[]>(SEEN, []), ...gone.map((l) => hostOf(l.url))])]);
+    setSeen([...new Set([...load<string[]>(SEEN, []), ...gone.map(leadKey)])]);
     if (gone.length) setMsg(`Cleaned up ${gone.length} old lead${gone.length === 1 ? "" : "s"}. They won't be added again.`);
     try {
       const k = sessionStorage.getItem(KEY);
@@ -121,14 +142,16 @@ export default function LeadAgent() {
   function removeLeads(match: (l: Lead) => boolean) {
     const gone = leads.filter(match);
     setLeads((ls) => ls.filter((l) => !match(l)));
-    setSeen((s) => [...new Set([...s, ...gone.map((l) => hostOf(l.url))])]);
+    setSeen((s) => [...new Set([...s, ...gone.map(leadKey)])]);
     return gone.length;
   }
 
-  function addLeads(items: { url: string; title?: string; source: string; hnUser?: string }[]) {
+  type NewLead = Partial<Lead> & { url: string; source: string; title?: string };
+
+  function addLeads(items: NewLead[]) {
     const known = new Set(seen);
     setLeads((ls) => {
-      const have = new Set(ls.map((l) => hostOf(l.url)));
+      const have = new Set(ls.map(leadKey));
       const fresh: Lead[] = [];
       let old = 0;
       for (const it of items) {
@@ -138,17 +161,24 @@ export default function LeadAgent() {
         } catch {
           continue;
         }
-        const h = hostOf(u.href);
-        if (have.has(h)) continue;
-        if (known.has(h) && it.source !== "Manual") {
+        const k = leadKey({ url: u.href, noWebsite: it.noWebsite });
+        if (have.has(k)) continue;
+        if (known.has(k) && it.source !== "Manual") {
           old++;
           continue;
         }
-        have.add(h);
-        fresh.push({ url: u.href, title: it.title || u.hostname, source: it.source, hnUser: it.hnUser, status: "queued", addedAt: new Date().toISOString() });
+        have.add(k);
+        fresh.push({
+          ...it,
+          url: u.href,
+          title: it.title || u.hostname,
+          lang: it.lang ?? countryByCode(it.country)?.lang ?? "en",
+          status: "queued",
+          addedAt: new Date().toISOString(),
+        });
       }
       const skippedNote = old ? ` Skipped ${old} you've already seen.` : "";
-      setMsg(fresh.length ? `Added ${fresh.length} new site${fresh.length === 1 ? "" : "s"}.${skippedNote}` : `No new sites.${skippedNote || " They're already in your list."}`);
+      setMsg(fresh.length ? `Added ${fresh.length} new lead${fresh.length === 1 ? "" : "s"}.${skippedNote}` : `Nothing new.${skippedNote || " They're already in your list."}`);
       return [...fresh, ...ls];
     });
   }
@@ -211,13 +241,66 @@ export default function LeadAgent() {
     }
   }
 
+  async function findLocal() {
+    setFinding(true);
+    setMsg("Searching the map… this can take up to a minute for big cities.");
+    try {
+      // runs in this browser: public map data, no server time limit
+      const places = await findPlaces({ country: local.country, city: local.city, category: local.category, mode: local.mode });
+      if (!places.length) {
+        setMsg(local.mode === "none" ? "No businesses without a website found there. Try another type or city." : "No businesses with a website found there. Try another type or city.");
+        return;
+      }
+      addLeads(
+        places.map((p) => ({
+          url: p.website || p.osmUrl,
+          title: p.name,
+          source: `Map · ${p.city}`,
+          country: p.country,
+          city: p.city,
+          category: p.category,
+          phone: p.phone,
+          whatsapp: p.whatsapp,
+          emails: p.email ? [p.email] : undefined,
+          emailSources: p.email ? { [p.email.toLowerCase()]: "OpenStreetMap listing" } : undefined,
+          noWebsite: !p.website,
+        }))
+      );
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Search failed.");
+    } finally {
+      setFinding(false);
+    }
+  }
+
+  /** Rebuilds a lead's draft in another language. */
+  function draftFor(l: Lead, lang: DraftLang) {
+    if (l.noWebsite) return noWebsiteDraft(lang, { name: l.title, city: l.city, me });
+    if (l.draftInput) return bugFirstDraft(lang, { ...l.draftInput, me });
+    return null;
+  }
+
+  function changeLang(l: Lead, lang: DraftLang) {
+    const d = draftFor(l, lang);
+    if (!d) return;
+    const edited = !l.noWebsite && l.body && !l.body.includes(BUG_MARKER);
+    if (edited && !confirm("Switching language replaces the draft, including the bug you wrote. Continue?")) return;
+    update(l.url, { lang, subject: d.subject, body: d.body, aiWritten: false });
+  }
+
   async function runAgent() {
     setRunning(true);
     const queue = leads.filter((l) => l.status === "queued" || l.status === "error");
     for (const l of queue) {
+      if (l.noWebsite) {
+        // nothing to scan: draft a website offer straight away
+        const d = noWebsiteDraft(l.lang || "en", { name: l.title, city: l.city, me });
+        update(l.url, { status: "ready", checkedAt: new Date().toISOString(), subject: d.subject, body: d.body, aiWritten: false, error: undefined });
+        continue;
+      }
       update(l.url, { status: "checking", error: undefined });
       try {
-        const r = await api("/api/agent/analyze", { url: l.url, product: l.title, hnUser: l.hnUser });
+        const r = await api("/api/agent/analyze", { url: l.url, product: l.title, hnUser: l.hnUser, lang: l.lang });
         const business = r.contacts.business as Lead["business"];
         const need = r.need as Lead["need"];
         const hobby = skipHobby && business?.label === "Hobby";
@@ -229,8 +312,10 @@ export default function LeadAgent() {
           need,
           score: r.score,
           issues: r.issues,
-          emails: r.contacts.emails,
-          emailSources: r.contacts.emailSources,
+          // keep emails from the map listing and add the ones found on the site
+          emails: [...new Set([...(l.emails || []), ...r.contacts.emails])],
+          emailSources: { ...(l.emailSources || {}), ...r.contacts.emailSources },
+          draftInput: r.draftInput,
           contactPage: r.contacts.contactPage,
           socials: r.contacts.socials,
           subject: r.draft.subject,
@@ -252,7 +337,7 @@ export default function LeadAgent() {
 
   /** Blocks sending while the draft still has the placeholder for the bug you found yourself. */
   function needsBug(l: Lead) {
-    if (!l.body?.includes("[YOUR BUG HERE")) return false;
+    if (!l.body?.includes(BUG_MARKER)) return false;
     setWarnUrl(l.url); // shown right under the buttons, where you're looking
     document.getElementById(`body-${l.url}`)?.focus();
     return true;
@@ -268,10 +353,10 @@ export default function LeadAgent() {
   }
 
   function exportCsv() {
-    const rows = [["Site", "Product", "Status", "Score", "Emails", "Email found on", "Contact page", "Subject", "Message"]];
+    const rows = [["Site", "Business", "Country", "City", "Phone", "Status", "Score", "Emails", "Email found on", "Contact page", "Subject", "Message"]];
     leads.forEach((l) =>
       rows.push([
-        l.url, l.title, statusText[l.status], String(l.score ?? ""), (l.emails || []).join(" "),
+        l.noWebsite ? "" : l.url, l.title, l.country || "", l.city || "", l.phone || "", statusText[l.status], String(l.score ?? ""), (l.emails || []).join(" "),
         (l.emails || []).map((e) => l.emailSources?.[e] || "").join(" | "), l.contactPage || "", l.subject || "", l.body || "",
       ])
     );
@@ -289,7 +374,9 @@ export default function LeadAgent() {
     return c;
   }, [leads]);
   // most promising first: real problems count double, business signals add on; unchecked leads stay on top
-  const priority = (l: Lead) => (l.need ? l.need.score * 2 + (l.business?.score ?? 0) : 1000);
+  const priority = (l: Lead) =>
+    l.noWebsite ? (l.status === "queued" ? 1000 : 70 + (l.emails?.length ? 20 : 0) + (l.phone ? 10 : 0))
+    : l.need ? l.need.score * 2 + (l.business?.score ?? 0) : 1000;
   const shown = leads
     .filter((l) => filter === "all" || (filter === "followup" ? needsFollowUp(l) : l.status === filter))
     .sort((a, b) => priority(b) - priority(a));
@@ -301,7 +388,7 @@ export default function LeadAgent() {
       <div className="agent-login card">
         <span className="eyebrow">Private</span>
         <h1 className="agent-h1">Lead Agent</h1>
-        <p className="muted">Finds new product launches, checks their sites, and drafts a personal message for each one.</p>
+        <p className="muted">Finds local businesses across Europe, checks their websites, and drafts a personal message in their language.</p>
         <form className="form" onSubmit={login}>
           <label htmlFor="admin-key">Admin password
             <input id="admin-key" type="password" autoComplete="current-password" value={key} onChange={(e) => setKey(e.target.value)} required />
@@ -330,8 +417,28 @@ export default function LeadAgent() {
       <div className="agent-controls">
         <div className="card agent-step">
           <span className="step-tag mono">1 · Find</span>
-          <button className="btn btn-ghost" onClick={findNew} disabled={finding || running}>
-            {finding ? "Searching…" : "Find new launches (Show HN)"}
+          <div className="agent-local">
+            <span className="label">Local businesses in Europe</span>
+            <div className="agent-local-row">
+              <select aria-label="Country" value={local.country} onChange={(e) => setLocal({ ...local, country: e.target.value })}>
+                {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+              </select>
+              <input aria-label="City" placeholder="City, e.g. Utrecht" value={local.city} onChange={(e) => setLocal({ ...local, city: e.target.value })} />
+            </div>
+            <select aria-label="Type of business" value={local.category} onChange={(e) => setLocal({ ...local, category: e.target.value })}>
+              {categories.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+            </select>
+            <div className="agent-mode" role="radiogroup" aria-label="Website">
+              <label><input type="radio" checked={local.mode === "none"} onChange={() => setLocal({ ...local, mode: "none" })} /> No website yet <small>(sell a website)</small></label>
+              <label><input type="radio" checked={local.mode === "website"} onChange={() => setLocal({ ...local, mode: "website" })} /> Has a website <small>(scan it)</small></label>
+            </div>
+            <button className="btn btn-primary" onClick={findLocal} disabled={finding || running || !local.city.trim()}>
+              {finding ? "Searching…" : "Find businesses"}
+            </button>
+            <span className="muted small">Chains are skipped. Business data © OpenStreetMap contributors.</span>
+          </div>
+          <button className="btn btn-ghost btn-sm fit" onClick={findNew} disabled={finding || running}>
+            {finding ? "Searching…" : "Or: new launches (Show HN)"}
           </button>
           <label htmlFor="paste" className="label">Or paste websites, one per line</label>
           <textarea id="paste" rows={3} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder={"startup.com\nanother-app.io"} />
@@ -358,10 +465,10 @@ export default function LeadAgent() {
         <div className="card agent-step">
           <span className="step-tag mono">3 · You send</span>
           <ol className="agent-rules">
-            <li>Open the site and test one flow yourself for 10 minutes.</li>
-            <li>Add one bug <em>you</em> found to the draft.</li>
-            <li>Send from your own email. Max 10 a day.</li>
-            <li>No reply in 5 days? One short follow-up, then stop.</li>
+            <li>Has a website: test one flow yourself and add one bug <em>you</em> found.</li>
+            <li>No website: check their map listing and photos so your message is specific.</li>
+            <li>Check the country rule on each lead. <em>Germany, Austria, Denmark, Italy, Spain, Poland:</em> no cold emails without consent.</li>
+            <li>Send yourself, one at a time. Max 10 a day. One follow-up after 5 days, then stop.</li>
           </ol>
           <button className="btn btn-ghost btn-sm fit" onClick={exportCsv} disabled={!leads.length}>Export CSV</button>
           <details className="agent-clean">
@@ -395,7 +502,7 @@ export default function LeadAgent() {
       {shown.length === 0 && (
         <div className="card agent-empty">
           <h3>No sites here yet</h3>
-          <p className="muted">Click <strong>Find new launches</strong> or paste a few websites to start.</p>
+          <p className="muted">Pick a country, city and type of business, then click <strong>Find businesses</strong>. Or paste a few websites.</p>
         </div>
       )}
 
@@ -411,11 +518,21 @@ export default function LeadAgent() {
                 <span className="lead-main">
                   <strong>{l.title}</strong>
                   <span className="mono small muted">
-                    {new URL(l.url).hostname} · {l.source}
+                    {l.country && <span className="tag-country">{l.country}</span>}
+                    {l.noWebsite
+                      ? `${categoryByKey(l.category)?.label ?? "Business"} · ${l.city} · no website`
+                      : `${new URL(l.url).hostname} · ${l.source}`}
+                    {l.noWebsite && <span className="biz biz-business">Needs a website</span>}
                     {l.business && <span className={`biz biz-${l.business.label.toLowerCase()}`}>{l.business.label}</span>}
                     {l.need && <span className={`biz need-${l.need.label.split(" ")[0].toLowerCase()}`}>{l.need.label}</span>}
                   </span>
-                  {l.emails?.[0] && <span className="lead-email mono small">✉ {l.emails[0]}{l.emails.length > 1 ? ` +${l.emails.length - 1}` : ""}</span>}
+                  {(l.emails?.[0] || l.phone) && (
+                    <span className="lead-email mono small">
+                      {l.emails?.[0] && `✉ ${l.emails[0]}${l.emails.length > 1 ? ` +${l.emails.length - 1}` : ""}`}
+                      {l.emails?.[0] && l.phone && "  "}
+                      {l.phone && `☎ ${l.phone}`}
+                    </span>
+                  )}
                 </span>
                 <span className={`pill lead-pill-${l.status}`}>{statusText[l.status]}</span>
               </button>
@@ -423,6 +540,13 @@ export default function LeadAgent() {
               {open && (
                 <div className="lead-body">
                   {l.error && <p className="muted small">{l.error}</p>}
+                  {l.country && (
+                    <div className={`rule rule-${countryByCode(l.country)?.rule ?? "check"}`}>
+                      <span className="label">Before you contact · {countryByCode(l.country)?.name}</span>
+                      <p className="small">{ruleText[countryByCode(l.country)?.rule ?? "check"]}</p>
+                      <p className="small muted">{whatsappRule} Not legal advice.</p>
+                    </div>
+                  )}
                   {l.need && l.need.evidence.length > 0 && (
                     <div className="start-here">
                       <span className="label">Start your manual check here · needs testing {l.need.score}/100</span>
@@ -456,15 +580,34 @@ export default function LeadAgent() {
                         </span>
                       ))
                     ) : (
-                      <span className="muted small">No public email found. Try the contact page or social links below.</span>
+                      <span className="muted small">No public email found{l.phone ? "." : ". Try the contact page or social links below."}</span>
+                    )}
+                    {l.phone && (
+                      <span className="lead-email-item">
+                        <span className="tag selectable">☎ {l.phone}</span>
+                        <a className="btn btn-ghost btn-sm" href={`tel:${l.phone.replace(/[^\d+]/g, "")}`}>Call</a>
+                        <button className="btn btn-ghost btn-sm" onClick={() => copy(l.phone!)}>Copy</button>
+                      </span>
                     )}
                     {l.contactPage && <a className="link small" href={l.contactPage} target="_blank" rel="noopener noreferrer">Contact page ↗</a>}
                     {l.socials?.map((s) => <a key={s} className="link small" href={s} target="_blank" rel="noopener noreferrer">{new URL(s).hostname} ↗</a>)}
-                    <a className="link small" href={l.url} target="_blank" rel="noopener noreferrer">Open site ↗</a>
+                    <a className="link small" href={l.url} target="_blank" rel="noopener noreferrer">{l.noWebsite ? "View on map ↗" : "Open site ↗"}</a>
+                    {l.noWebsite && (
+                      <a className="link small" href={`https://www.google.com/search?q=${encodeURIComponent(`${l.title} ${l.city ?? ""}`)}`} target="_blank" rel="noopener noreferrer">
+                        Search Google for reviews & photos ↗
+                      </a>
+                    )}
                   </div>
                   {l.body !== undefined && (
                     <div className="lead-draft">
-                      <span className="label">Draft {l.aiWritten ? "(AI)" : "(template)"} · edit before sending</span>
+                      <div className="row-between lead-draft-head">
+                        <span className="label">Draft {l.aiWritten ? "(AI)" : "(template)"} · edit before sending</span>
+                        {(l.noWebsite || l.draftInput) && (
+                          <select aria-label="Draft language" value={l.lang || "en"} onChange={(e) => changeLang(l, e.target.value as DraftLang)}>
+                            {(Object.keys(langLabel) as DraftLang[]).map((k) => <option key={k} value={k}>{langLabel[k]}</option>)}
+                          </select>
+                        )}
+                      </div>
                       <input id={`subj-${l.url}`} value={l.subject || ""} onChange={(e) => update(l.url, { subject: e.target.value })} aria-label="Subject" />
                       <textarea id={`body-${l.url}`} rows={10} value={l.body} onChange={(e) => update(l.url, { body: e.target.value })} aria-label="Message" />
                       <div className="row">
@@ -487,6 +630,17 @@ export default function LeadAgent() {
                             onClick={(e) => needsBug(l) && e.preventDefault()}
                           >
                             Open in email app
+                          </a>
+                        )}
+                        {phoneForWhatsApp(l.whatsapp || l.phone, l.country) && (
+                          <a
+                            className="btn btn-ghost btn-sm"
+                            href={`https://wa.me/${phoneForWhatsApp(l.whatsapp || l.phone, l.country)}?text=${encodeURIComponent(l.body || "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => needsBug(l) && e.preventDefault()}
+                          >
+                            Open in WhatsApp <small className="muted">(if on WhatsApp)</small>
                           </a>
                         )}
                         {l.status !== "contacted" ? (

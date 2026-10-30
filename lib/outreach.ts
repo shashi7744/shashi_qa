@@ -1,6 +1,8 @@
 import * as cheerio from "cheerio";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { normalizeUrl, readLimited, safeFetch, type Report } from "./checker";
+import type { DraftLang } from "./europe";
+import { bugFirstDraft } from "./outreachTemplates";
 
 /* ---------- Admin auth ---------- */
 
@@ -378,30 +380,22 @@ export interface Signer {
 export const BUG_PLACEHOLDER =
   "[YOUR BUG HERE: what you did → what happened → what you expected. Attach a screenshot or short screen recording.]";
 
-function templateDraft(report: Report, product: string, me: Signer, flow: string): Draft {
+function templateDraft(report: Report, product: string, me: Signer, flow: string, lang: DraftLang = "en"): Draft {
   const host = new URL(report.finalUrl).hostname;
-  const extras = topIssues(report, 2).map((i) => `- ${i.title}: ${i.detail}`).join("\n");
-  return {
-    subject: `Found a bug on ${host}`,
-    body: `Hi,
-
-I tried ${product || host} and ran into this:
-
-${BUG_PLACEHOLDER}
-
-I'm a software tester and help startups catch issues like this before their users do. Happy to test your ${flow} for free and send you a clear bug report with steps and screenshots.
-${extras ? `\nTwo smaller things my automated scan picked up, in case they're useful:\n${extras}\n` : ""}
-${me.name}
-Shashi Studio · websites, AI video & testing
-${me.email} · ${me.site}`,
-    aiWritten: false,
-  };
+  const extras = topIssues(report, 2).map((i) => `${i.title}: ${i.detail}`);
+  return { ...bugFirstDraft(lang, { product, host, flow, extras, me }), aiWritten: false };
 }
 
-export async function draftMessage(report: Report, product: string, me: Signer, flow = "main user flow"): Promise<Draft> {
+export async function draftMessage(
+  report: Report,
+  product: string,
+  me: Signer,
+  flow = "main user flow",
+  lang: DraftLang = "en"
+): Promise<Draft> {
   const key = process.env.ANTHROPIC_API_KEY;
-  const fallback = () => templateDraft(report, product, me, flow);
-  if (!key) return fallback();
+  const fallback = () => templateDraft(report, product, me, flow, lang);
+  if (!key || lang !== "en") return fallback(); // AI drafts are English-only for now
 
   const host = new URL(report.finalUrl).hostname;
   const facts = topIssues(report, 3).map((i) => `- [${i.status}] ${i.cat} / ${i.title}: ${i.detail}`).join("\n");
