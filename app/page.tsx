@@ -72,7 +72,7 @@ export default function Home() {
         </div>
         <div className="svc-cards">
           {services.map((s) => (
-            <Link key={s.key} href={`/services#${s.id}`} className={`card svc-card accent-${s.accent}`}>
+            <Link key={s.key} href={`/services/${s.id}`} className={`card svc-card accent-${s.accent}`}>
               <span className="mono">{s.num}</span>
               <h3>{s.label}</h3>
               <p className="muted small">{s.short}</p>

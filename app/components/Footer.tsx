@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { navLinks, site } from "../data";
+import { navLinks, services, site } from "../data";
 
 export default function Footer() {
   return (
@@ -16,6 +16,12 @@ export default function Footer() {
           <span className="label">Pages</span>
           {navLinks.map((l) => (
             <Link key={l.href} href={l.href}>{l.label}</Link>
+          ))}
+        </div>
+        <div className="stack-sm">
+          <span className="label">Services</span>
+          {services.map((s) => (
+            <Link key={s.id} href={`/services/${s.id}`}>{s.label}</Link>
           ))}
         </div>
         <div className="stack-sm">

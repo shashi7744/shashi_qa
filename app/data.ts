@@ -4,8 +4,7 @@ export const site = {
   email: "shashi.gautam22@gmail.com",
   github: "https://github.com/shashi7744",
   location: "Mumbai, India",
-  // ✏️ when you buy a domain, set NEXT_PUBLIC_SITE_URL in Vercel (e.g. https://shashiqa.nl) and redeploy
-  url: (process.env.NEXT_PUBLIC_SITE_URL || "https://shashiqa.vercel.app").replace(/\/$/, ""),
+  url: (process.env.NEXT_PUBLIC_SITE_URL || "https://www.shashistudio.online").replace(/\/$/, ""),
   serving: "Clients across Europe · Remote",
   hours: "Mon–Fri · 09:00–17:00 CET",
   phone: "+91 88051 55137",
@@ -18,6 +17,7 @@ export const navLinks = [
   { href: "/services", label: "Services" },
   { href: "/check", label: "Website Scan" },
   { href: "/projects", label: "Projects" },
+  { href: "/blog", label: "Guides" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];

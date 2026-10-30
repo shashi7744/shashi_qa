@@ -733,7 +733,10 @@ export default function Scene() {
     () => ({ pointer, scroll, hover, flick, tint, color: color.current, speed: reduced ? 0.25 : 1 }),
     [reduced]
   );
-  const base = layouts[pathname] ?? layouts["/"];
+  // sub-pages (/services/websites, /blog/…) use their section's position
+  const base =
+    layouts[pathname] ??
+    (pathname.startsWith("/services") ? layouts["/services"] : pathname.startsWith("/blog") ? layouts["/about"] : layouts["/"]);
   const target: [number, number, number] = mobile ? [0, -2.2, base[2] * 0.7] : base;
   return (
     <div className="scene" aria-hidden="true">

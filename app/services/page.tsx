@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import BugReport from "../components/BugReport";
 import { SERVICE_PREVIEW } from "../components/ServicePreview";
+import PlanCards from "../components/PlanCards";
 import ServiceNav from "../components/ServiceNav";
 import TiltCard from "../components/TiltCard";
-import { eur, faqs, services, site, testTypes } from "../data";
+import { faqs, services, site, testTypes } from "../data";
 
 export const metadata: Metadata = {
   title: "Services & Pricing",
@@ -25,7 +26,7 @@ const servicesJsonLd = {
   itemListElement: services.map((s) => ({
     "@type": "OfferCatalog",
     name: s.label,
-    url: `${site.url}/services#${s.id}`,
+    url: `${site.url}/services/${s.id}`,
     itemListElement: s.plans.map((p) => ({
       "@type": "Offer",
       name: `${s.label}: ${p.name}`,
@@ -92,32 +93,8 @@ export default function Services() {
               </TiltCard>
             </div>
 
-            <div className="grid-3 pricing">
-              {s.plans.map((p) => (
-                <div key={p.name} className={`price-card ${p.popular ? "featured" : ""}`}>
-                  {p.popular && <span className="badge">Most popular</span>}
-                  <span className="label">{p.name}</span>
-                  <div className="price">
-                    <strong>{eur(p.price)}</strong>
-                    <span className="muted">{p.per}</span>
-                  </div>
-                  <p className="muted">{p.for}</p>
-                  <ul className="checks">
-                    {p.features.map((f) => <li key={f}>{f}</li>)}
-                  </ul>
-                  <Link
-                    href={`/contact?service=${s.key}&plan=${encodeURIComponent(p.name)}`}
-                    className={`btn ${p.popular ? "btn-primary" : "btn-ghost"}`}
-                  >
-                    Choose {p.name}
-                  </Link>
-                </div>
-              ))}
-            </div>
-            <div className="svc-meta">
-              <span className="svc-time"><b>Delivery</b> {s.time}</span>
-              <span className="muted small">For comparison: {s.local} Prices in EUR, excl. VAT.</span>
-            </div>
+            <PlanCards s={s} />
+            <Link href={`/services/${s.id}`} className="link fit">Full details, examples and FAQ for {s.label} →</Link>
 
             {s.key === "qa" && (
               <>

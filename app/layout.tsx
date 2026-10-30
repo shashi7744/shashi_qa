@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/next"; // cookieless visitor stats, shown in the Vercel dashboard
 import { Bricolage_Grotesque, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 import Header from "./components/Header";
@@ -84,6 +85,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Footer />
         <MobileCta />
         <SmoothScroll />
+        <Analytics />
         <RevealFallback />
       </body>
     </html>
