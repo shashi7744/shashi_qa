@@ -13,7 +13,7 @@ const KEY = "lang-suggest-dismissed";
 
 /** On English service pages: suggests the visitor's own language. It never redirects
     automatically, because forced redirects can hide the other languages from Google. */
-export default function LangSuggest({ path }: { path: string }) {
+export default function LangSuggest({ path, hrefs }: { path?: string; hrefs?: Partial<Record<Locale, string>> }) {
   const [lang, setLang] = useState<Locale | null>(null);
 
   useEffect(() => {
@@ -24,7 +24,8 @@ export default function LangSuggest({ path }: { path: string }) {
     if (pick && pick !== "en" && isLocale(pick)) setLang(pick);
   }, []);
 
-  if (!lang) return null;
+  const target = lang ? hrefs ? hrefs[lang] : path !== undefined ? `/${lang}${path}` : undefined : undefined;
+  if (!lang || !target) return null;
   const t = text[lang];
   const dismiss = () => {
     try {
@@ -35,7 +36,7 @@ export default function LangSuggest({ path }: { path: string }) {
   return (
     <div className="lang-suggest" role="region" aria-label="Language suggestion" lang={lang}>
       <span>{t.msg}</span>
-      <Link href={`/${lang}${path}`} className="btn btn-primary btn-sm" hrefLang={lang}>{t.go}</Link>
+      <Link href={target} className="btn btn-primary btn-sm" hrefLang={lang}>{t.go}</Link>
       <button className="btn btn-ghost btn-sm" onClick={dismiss}>{t.no}</button>
     </div>
   );

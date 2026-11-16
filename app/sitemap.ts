@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { posts } from "./blog/posts";
+import { localPosts, postHrefs } from "./blog/translations";
 import { services, site } from "./data";
 import { locales } from "./i18n/locales";
 
@@ -28,7 +29,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...translated("/services", 0.9),
     ...services.flatMap((s) => translated(`/services/${s.id}`, 0.9)),
     page("/blog", 0.7, "weekly"),
-    ...posts.map((p) => page(`/blog/${p.slug}`, 0.7, "monthly", new Date(p.date))),
+    ...posts.map((p) => {
+      const h = postHrefs(p.slug);
+      const languages = Object.keys(h).length > 1 ? Object.fromEntries(Object.entries(h).map(([l, path]) => [l, abs(path!)])) : undefined;
+      return { ...page(`/blog/${p.slug}`, 0.7, "monthly", new Date(p.date)), ...(languages && { alternates: { languages } }) };
+    }),
+    ...locales.map((l) => page(`/${l}/blog`, 0.6, "weekly")),
+    ...locales.flatMap((l) =>
+      localPosts[l].map((lp) => {
+        const en = posts.find((x) => x.slug === lp.key)!;
+        const languages = Object.fromEntries(Object.entries(postHrefs(lp.key)).map(([k, path]) => [k, abs(path!)]));
+        return { ...page(`/${l}/blog/${lp.slug}`, 0.6, "monthly", new Date(en.date)), alternates: { languages } };
+      })
+    ),
     page("/check", 0.8, "monthly"),
     page("/projects", 0.6, "monthly"),
     page("/about", 0.6, "monthly"),

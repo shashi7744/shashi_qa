@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { services, site } from "../../data";
+import LangSuggest from "../../components/LangSuggest";
+import LangSwitch from "../../components/LangSwitch";
 import { findPost, posts } from "../posts";
+import { postAlternates, postHrefs } from "../translations";
 
 export function generateStaticParams() {
   return posts.map((p) => ({ slug: p.slug }));
@@ -15,7 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: { absolute: p.title }, // guide titles are long enough on their own
     description: p.description,
-    alternates: { canonical: `/blog/${p.slug}` },
+    alternates: { canonical: `/blog/${p.slug}`, languages: postAlternates(p.slug) },
     openGraph: { type: "article", title: p.title, description: p.description, publishedTime: p.date },
   };
 }
@@ -29,6 +32,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
   const s = services.find((x) => x.key === p.service)!;
   const url = `${site.url}/blog/${p.slug}`;
   const others = posts.filter((x) => x.slug !== p.slug);
+  const hrefs = postHrefs(p.slug);
 
   const jsonLd = [
     {
@@ -62,6 +66,12 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
           <nav className="crumbs mono small" aria-label="Breadcrumb">
             <Link href="/">Home</Link> / <Link href="/blog">Guides</Link>
           </nav>
+          {Object.keys(hrefs).length > 1 && (
+            <>
+              <LangSwitch hrefs={hrefs} current="en" />
+              <LangSuggest hrefs={hrefs} />
+            </>
+          )}
           <h1>{p.title}</h1>
           <p className="lead">{p.description}</p>
           <span className="mono small muted">

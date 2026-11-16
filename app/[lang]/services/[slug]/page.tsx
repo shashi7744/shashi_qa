@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import LangSwitch from "../../../components/LangSwitch";
 import { SERVICE_PREVIEW } from "../../../components/ServicePreview";
 import TiltCard from "../../../components/TiltCard";
+import { posts } from "../../../blog/posts";
+import { blogUi, localPosts } from "../../../blog/translations";
 import { services, site } from "../../../data";
 import { fmtEur, isLocale, languageAlternates, locales, ogLocale, translations, ui, type Locale } from "../../../i18n";
 
@@ -201,6 +203,16 @@ export default async function LocalServicePage({ params }: { params: Params }) {
                 </Link>
               );
             })}
+          {/* translated guides for this service */}
+          {localPosts[lang as Locale]
+            .filter((lp) => posts.find((x) => x.slug === lp.key)?.service === s.key)
+            .map((lp) => (
+              <Link key={lp.slug} href={`/${lang}/blog/${lp.slug}`} className="card svc-card accent-violet">
+                <span className="mono">{blogUi[lang as Locale].guides}</span>
+                <h3>{lp.title}</h3>
+                <p className="muted small">{lp.description}</p>
+              </Link>
+            ))}
         </div>
       </section>
 
