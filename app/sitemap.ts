@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { posts } from "./blog/posts";
 import { localPosts, postHrefs } from "./blog/translations";
-import { services, site } from "./data";
+import { services, site, videoWork } from "./data";
 import { locales } from "./i18n/locales";
 
 type Entry = MetadataRoute.Sitemap[number];
@@ -42,6 +42,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
         return { ...page(`/${l}/blog/${lp.slug}`, 0.6, "monthly", new Date(en.date)), alternates: { languages } };
       })
     ),
+    page("/videos", 0.8, "monthly"),
+    // watch pages, with video details for Google video search
+    ...videoWork.map((v) => ({
+      ...page(`/videos/${v.slug}`, 0.7, "monthly", new Date(v.date)),
+      videos: [
+        {
+          title: `${v.brand}: ${v.title}`,
+          description: v.description,
+          thumbnail_loc: abs(`/work/${v.slug}.jpg`),
+          content_loc: abs(`/work/${v.slug}.mp4`),
+          duration: v.seconds,
+          publication_date: v.date,
+        },
+      ],
+    })),
     page("/check", 0.8, "monthly"),
     page("/projects", 0.6, "monthly"),
     page("/about", 0.6, "monthly"),

@@ -217,6 +217,7 @@ export type VideoWork = {
   seconds: number;
   date: string; // YYYY-MM-DD
   description: string;
+  guide: string; // slug of the most related guide in app/blog/posts.ts
 };
 
 export const videoWork: VideoWork[] = [
@@ -229,6 +230,7 @@ export const videoWork: VideoWork[] = [
     seconds: 60,
     date: "2026-11-20",
     description: "A problem-to-solution product ad for a ginger shot, with Dutch on-screen captions, built for Instagram and TikTok.",
+    guide: "ai-video-ads-multiple-languages-europe",
   },
   {
     slug: "mango-leaf-tonic-ad",
@@ -239,6 +241,7 @@ export const videoWork: VideoWork[] = [
     seconds: 28,
     date: "2026-11-22",
     description: "A warm lifestyle ad for a wellness tonic with an AI-generated presenter and product close-ups.",
+    guide: "ai-video-ad-ideas-small-business",
   },
   {
     slug: "cloutcraft-studio-promo",
@@ -249,6 +252,7 @@ export const videoWork: VideoWork[] = [
     seconds: 58,
     date: "2026-11-20",
     description: "A story-driven promo for a content studio, with bilingual captions and a clear call to action.",
+    guide: "ai-video-ads-small-business",
   },
   {
     slug: "g-socials-promo",
@@ -259,6 +263,7 @@ export const videoWork: VideoWork[] = [
     seconds: 6,
     date: "2026-11-20",
     description: "A punchy 6-second kinetic typography teaser for a social media brand.",
+    guide: "15-second-video-ad-script-formula",
   },
 ];
 

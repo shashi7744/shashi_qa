@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { services, site } from "../../data";
 import LangSuggest from "../../components/LangSuggest";
 import LangSwitch from "../../components/LangSwitch";
+import VideoShowcase from "../../components/VideoShowcase";
 import { findPost, posts } from "../posts";
 import { postAlternates, postHrefs } from "../translations";
 
@@ -92,6 +93,16 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
             )
           )}
         </div>
+
+        {p.service === "ai" && (
+          <section className="article-videos" data-tint="#9b8cff">
+            <div className="section-head">
+              <span className="eyebrow">Examples</span>
+              <h2>AI videos made like this.</h2>
+            </div>
+            <VideoShowcase />
+          </section>
+        )}
 
         <div className={`cta-band article-cta accent-${s.accent}`}>
           <div>

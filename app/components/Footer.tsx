@@ -23,6 +23,7 @@ export default function Footer() {
           {services.map((s) => (
             <Link key={s.id} href={`/services/${s.id}`}>{s.label}</Link>
           ))}
+          <Link href="/videos">AI video examples</Link>
         </div>
         <div className="stack-sm">
           <span className="label">Contact</span>

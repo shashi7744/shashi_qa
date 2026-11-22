@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import LangSwitch from "../../../components/LangSwitch";
+import VideoShowcase, { videoLabels } from "../../../components/VideoShowcase";
 import { posts } from "../../../blog/posts";
 import { blogUi, localPosts, postAlternates, postHrefs } from "../../../blog/translations";
 import { services, site } from "../../../data";
@@ -102,6 +103,16 @@ export default async function LocalPostPage({ params }: { params: Params }) {
             )
           )}
         </div>
+
+        {en.service === "ai" && (
+          <section className="article-videos" data-tint="#9b8cff">
+            <div className="section-head">
+              <span className="eyebrow">{videoLabels[lang].eyebrow}</span>
+              <h2>{videoLabels[lang].h2}</h2>
+            </div>
+            <VideoShowcase lang={lang} />
+          </section>
+        )}
 
         <div className={`cta-band article-cta accent-${s.accent}`}>
           <div>
