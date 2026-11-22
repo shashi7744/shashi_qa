@@ -52,9 +52,10 @@ function AiVideo() {
   ];
   return (
     <div className="specimen" aria-hidden="true">
-      <Bar label="render · skincare-ad-v2.mp4 · 00:30" />
+      <Bar label="render · go-gember-ad-nl.mp4 · 01:00" />
       <div className="spec-vid">
-        <div className="vframe">Glow in 7 days</div>
+        {/* a real frame from the Go Gember ad in /work */}
+        <div className="vframe" style={{ backgroundImage: "url(/work/frames/ai-frame.jpg)" }} />
         <div className="tl">
           {tracks.map(([name, clips]) => (
             <div className="trk" key={name}>
@@ -70,26 +71,26 @@ function AiVideo() {
 }
 
 function Instagram() {
-  // [background, is a reel, hook text, views or kind]
+  // [frame from our own videos, is a reel, hook text, kind]
   const tiles: [string, boolean, string, string][] = [
-    ["radial-gradient(circle at 30% 20%,#FFB36B,transparent 55%),linear-gradient(160deg,#FF3B5C,#7A1F5C)", true, "3 croissants, 1 secret", "▶ 12.4k"],
-    ["linear-gradient(170deg,#E8862B,#5A2410)", false, "November menu", "carousel · 6"],
-    ["radial-gradient(circle at 40% 70%,#FFE27A,transparent 50%),linear-gradient(150deg,#16A37B,#0E3B47)", true, "Behind the counter", "▶ 8.1k"],
-    ["linear-gradient(170deg,#2D5BFF,#13152A)", false, "Meet our baker", "post"],
-    ["radial-gradient(circle at 60% 20%,#FFD1E8,transparent 50%),linear-gradient(160deg,#B05BFF,#2A1450)", true, "Weekend brunch in 15 s", "▶ 21.7k"],
-    ["linear-gradient(160deg,#2B8CB0,#0F2A3A)", false, "Swipe for the recipe", "carousel · 5"],
+    ["/work/frames/ig-1.jpg", true, "Tired by 3 pm?", "reel · 0:15"],
+    ["/work/frames/ig-2.jpg", false, "Why cold-pressed?", "carousel · 6"],
+    ["/work/frames/ig-3.jpg", true, "Meet the maker", "reel · 0:28"],
+    ["/work/cloutcraft-studio-promo.jpg", false, "Fast websites", "post"],
+    ["/work/frames/ig-6.jpg", true, "New: Mango Leaf", "reel · 0:20"],
+    ["/work/frames/ig-4.jpg", false, "How we build it", "carousel · 5"],
   ];
   return (
     <div className="specimen" aria-hidden="true">
-      <Bar label="@cafelumiere · November plan" />
+      <Bar label="sample feed · one month's plan" />
       <div className="spec-ig">
         <div className="prof">
           <div className="av"><i /></div>
-          <div className="nums"><span><b>142</b>posts</span><span><b>8.4k</b>followers</span><span><b>+21%</b>reach</span></div>
+          <div className="nums"><span><b>12</b>posts</span><span><b>6</b>reels</span><span><b>4</b>carousels</span></div>
         </div>
         <div className="gridp">
-          {tiles.map(([bg, reel, hook, meta], i) => (
-            <div key={i} className={`igp ${reel ? "r" : ""}`} style={{ background: bg }}>
+          {tiles.map(([img, reel, hook, meta], i) => (
+            <div key={i} className={`igp ${reel ? "r" : ""}`} style={{ backgroundImage: `url(${img})` }}>
               <span className="igp-hook">{hook}</span>
               <span className="igp-meta">{meta}</span>
             </div>

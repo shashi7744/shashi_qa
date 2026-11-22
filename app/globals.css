@@ -448,7 +448,7 @@ main h1, main h2, main .lead { text-shadow: 0 2px 18px rgba(10, 13, 28, 0.85); }
 .spec-vid { display: grid; grid-template-columns: auto 1fr; gap: 16px; padding: 16px; align-items: stretch; }
 .vframe {
   width: 140px; aspect-ratio: 9 / 16; border-radius: 14px; position: relative; display: flex; align-items: flex-end; padding: 12px;
-  background: radial-gradient(circle at 60% 25%, #ffd1e8, transparent 50%), linear-gradient(160deg, #b05bff, #2a1450);
+  background: #2a1450 center / cover no-repeat;
   color: #fff; font: 700 0.9rem/1.2 var(--f-display); max-width: 100%;
 }
 .vframe::after { content: ""; position: absolute; inset: 0; margin: auto; width: 42px; height: 42px; border-radius: 50%; background: rgba(255, 255, 255, 0.22); }
@@ -468,6 +468,7 @@ main h1, main h2, main .lead { text-shadow: 0 2px 18px rgba(10, 13, 28, 0.85); }
 .spec-ig .igp {
   aspect-ratio: 4 / 5; border-radius: 6px; position: relative; overflow: hidden; color: #fff;
   display: flex; flex-direction: column; justify-content: flex-end; gap: 3px; padding: 8px;
+  background: #222 center / cover no-repeat;
 }
 .spec-ig .igp::before { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 40%, rgba(0, 0, 0, 0.55)); }
 .spec-ig .igp.r::after { content: "▶"; position: absolute; top: 6px; right: 7px; font-size: 10px; }
