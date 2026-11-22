@@ -82,11 +82,11 @@ function Instagram() {
   ];
   return (
     <div className="specimen" aria-hidden="true">
-      <Bar label="sample feed · one month's plan" />
+      <Bar label="sample feed · Growth plan, one month" />
       <div className="spec-ig">
         <div className="prof">
           <div className="av"><i /></div>
-          <div className="nums"><span><b>12</b>posts</span><span><b>6</b>reels</span><span><b>4</b>carousels</span></div>
+          <div className="nums"><span><b>12</b>reels</span><span><b>8</b>posts</span><span><b>4</b>stories</span></div>
         </div>
         <div className="gridp">
           {tiles.map(([img, reel, hook, meta], i) => (
