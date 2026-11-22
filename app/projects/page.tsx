@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import TiltCard from "../components/TiltCard";
+import VideoShowcase from "../components/VideoShowcase";
 import { projects } from "../data";
 
 export const metadata: Metadata = {
@@ -15,8 +16,24 @@ export default function Projects() {
     <>
       <section className="container page-head">
         <span className="eyebrow">Projects</span>
-        <h1>Apps I've built and tested.</h1>
-        <p className="lead">Each one is live. Open it, try it, and see what I checked before shipping.</p>
+        <h1>AI videos, apps and websites.</h1>
+        <p className="lead">Watch the AI video samples, then open the live apps and see what I checked before shipping.</p>
+      </section>
+
+      <section className="container section-tight" data-tint="#9b8cff">
+        <div className="section-head">
+          <span className="eyebrow">AI video</span>
+          <h2>AI video ads and promos.</h2>
+          <p className="lead">Product ads, an AI presenter, a story-driven promo and a motion teaser. Tap to play.</p>
+        </div>
+        <VideoShowcase />
+      </section>
+
+      <section className="container section-tight">
+        <div className="section-head">
+          <span className="eyebrow">Apps & websites</span>
+          <h2>Built, shipped and tested.</h2>
+        </div>
       </section>
 
       <section className="container section-tight stack-lg">

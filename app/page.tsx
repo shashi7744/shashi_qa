@@ -1,6 +1,7 @@
 import Link from "next/link";
 import TestConsole from "./components/TestConsole";
 import TiltCard from "./components/TiltCard";
+import VideoShowcase from "./components/VideoShowcase";
 import { processSteps, projects, services } from "./data";
 
 export default function Home() {
@@ -59,6 +60,18 @@ export default function Home() {
             <TestConsole />
           </TiltCard>
         </div>
+      </section>
+
+      {/* AI video samples */}
+      <section className="container section" data-tint="#9b8cff">
+        <div className="section-head row-between">
+          <div>
+            <span className="eyebrow">AI video</span>
+            <h2>Ads that stop the scroll.</h2>
+          </div>
+          <Link href="/services/ai-video" className="btn btn-ghost">AI video plans</Link>
+        </div>
+        <VideoShowcase />
       </section>
 
       {/* Services */}

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import LangSwitch from "../../../components/LangSwitch";
 import { SERVICE_PREVIEW } from "../../../components/ServicePreview";
 import TiltCard from "../../../components/TiltCard";
+import VideoShowcase from "../../../components/VideoShowcase";
 import { posts } from "../../../blog/posts";
 import { blogUi, localPosts } from "../../../blog/translations";
 import { services, site } from "../../../data";
@@ -12,6 +13,12 @@ import { fmtEur, isLocale, languageAlternates, locales, ogLocale, translations, 
 /* German, French and Dutch versions of each service page: /de/services/websites etc. */
 
 const TINT: Record<string, string> = { teal: "#3ee0cf", amber: "#f2a649", violet: "#9b8cff", rec: "#ff5d6c", pass: "#4ade8a" };
+
+const SAMPLES: Record<Locale, { eyebrow: string; h2: string; label: string }> = {
+  de: { eyebrow: "Beispiele", h2: "Aktuelle KI-Videos ansehen.", label: "Beispielarbeit · mit KI erstellt" },
+  fr: { eyebrow: "Exemples", h2: "Regardez quelques vidéos IA récentes.", label: "Exemple · créé avec l'IA" },
+  nl: { eyebrow: "Voorbeelden", h2: "Bekijk recente AI-video's.", label: "Voorbeeldwerk · gemaakt met AI" },
+};
 
 export const dynamicParams = false;
 
@@ -117,6 +124,16 @@ export default async function LocalServicePage({ params }: { params: Params }) {
           </TiltCard>
         </div>
       </section>
+
+      {s.key === "ai" && (
+        <section className={`container section accent-${s.accent}`} data-tint={TINT[s.accent]}>
+          <div className="section-head">
+            <span className="eyebrow svc-eyebrow">{SAMPLES[lang as Locale].eyebrow}</span>
+            <h2>{SAMPLES[lang as Locale].h2}</h2>
+          </div>
+          <VideoShowcase label={SAMPLES[lang as Locale].label} />
+        </section>
+      )}
 
       <section className={`container section accent-${s.accent}`} data-tint={TINT[s.accent]}>
         <div className="section-head">

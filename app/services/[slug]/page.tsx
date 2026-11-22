@@ -7,6 +7,7 @@ import PlanCards from "../../components/PlanCards";
 import { languageAlternates } from "../../i18n/locales";
 import { SERVICE_PREVIEW } from "../../components/ServicePreview";
 import TiltCard from "../../components/TiltCard";
+import VideoShowcase from "../../components/VideoShowcase";
 import { processSteps, services, site } from "../../data";
 import { serviceDetails } from "../../serviceDetails";
 import { posts } from "../../blog/posts";
@@ -108,6 +109,16 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
           </TiltCard>
         </div>
       </section>
+
+      {s.key === "ai" && (
+        <section className={`container section accent-${s.accent}`} data-tint={TINT[s.accent]}>
+          <div className="section-head">
+            <span className="eyebrow svc-eyebrow">Samples</span>
+            <h2>Watch some recent AI videos.</h2>
+          </div>
+          <VideoShowcase />
+        </section>
+      )}
 
       <section className={`container section accent-${s.accent}`} data-tint={TINT[s.accent]}>
         <div className="section-head">

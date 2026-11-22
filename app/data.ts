@@ -207,6 +207,61 @@ export const projects = [
   },
 ];
 
+/* AI video samples shown on the site (files in public/work). ✏️ Add one by copying a block. */
+export type VideoWork = {
+  slug: string;
+  brand: string;
+  title: string;
+  kind: string;
+  langs: string;
+  seconds: number;
+  date: string; // YYYY-MM-DD
+  description: string;
+};
+
+export const videoWork: VideoWork[] = [
+  {
+    slug: "go-gember-ad",
+    brand: "Go Gember",
+    title: "Ginger shot ad in Dutch",
+    kind: "Product ad · AI scenes",
+    langs: "Dutch captions",
+    seconds: 60,
+    date: "2026-11-20",
+    description: "A problem-to-solution product ad for a ginger shot, with Dutch on-screen captions, built for Instagram and TikTok.",
+  },
+  {
+    slug: "mango-leaf-tonic-ad",
+    brand: "Mango Leaf Tonic",
+    title: "Wellness drink ad with an AI presenter",
+    kind: "Product ad · AI presenter",
+    langs: "No dialogue",
+    seconds: 28,
+    date: "2026-11-22",
+    description: "A warm lifestyle ad for a wellness tonic with an AI-generated presenter and product close-ups.",
+  },
+  {
+    slug: "cloutcraft-studio-promo",
+    brand: "CloutCraft Studio",
+    title: "Agency promo with a story",
+    kind: "Brand promo · storytelling",
+    langs: "Hindi + English captions",
+    seconds: 58,
+    date: "2026-11-20",
+    description: "A story-driven promo for a content studio, with bilingual captions and a clear call to action.",
+  },
+  {
+    slug: "g-socials-promo",
+    brand: "G Socials",
+    title: "Kinetic text brand teaser",
+    kind: "Motion graphics · typography",
+    langs: "English text",
+    seconds: 6,
+    date: "2026-11-20",
+    description: "A punchy 6-second kinetic typography teaser for a social media brand.",
+  },
+];
+
 export const skills = {
   Testing: ["Manual testing", "Test cases", "Bug reporting", "Regression", "Cross-browser", "API testing (Postman)"],
   Development: ["React.js", "Next.js", "TypeScript", "REST APIs", "GitHub", "Vercel"],
